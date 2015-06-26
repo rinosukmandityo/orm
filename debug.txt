@@ -1,0 +1,3 @@
+Inserted: 1000
+exit status 2
+FAIL	github.com/eaciit/orm	1.055s
