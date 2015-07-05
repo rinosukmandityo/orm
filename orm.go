@@ -5,3 +5,5 @@ const (
 	modModel    = "Model"
 	modCtx      = "DataContext"
 )
+
+type T map[string]interface{}
