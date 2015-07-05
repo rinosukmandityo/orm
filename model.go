@@ -9,12 +9,19 @@ import (
 type O map[string]interface{}
 
 type IModel interface {
+	Find(map[string]interface{}) base.ICursor
 	GetById(interface{}) error
 	PreSave() error
 	PostSave() error
 	SetM(IModel) IModel
 	SetCtx(*DataContext)
+	Ctx() *DataContext
 	TableName() string
+
+	PrepareId() interface{}
+	Save() error
+	Insert() error
+	Delete() error
 }
 
 type ModelBase struct {
@@ -30,10 +37,18 @@ func (m *ModelBase) SetM(md IModel) IModel {
 	return m
 }
 
+func (m *ModelBase) Ctx() *DataContext {
+	return m.ctx
+}
+
 func (m *ModelBase) SetCtx(dc *DataContext) {
 	m.ctx = dc
 	tableName := m.TableName()
 	m.adapter = dc.Connection.Adapter(tableName)
+}
+
+func (m *ModelBase) Find(parms map[string]interface{}) base.ICursor {
+	return m.ctx.Connection.Table(m.M.TableName(), parms)
 }
 
 func (m *ModelBase) GetById(id interface{}) error {
@@ -62,9 +77,14 @@ func (m *ModelBase) GetById(id interface{}) error {
 	return nil
 }
 
+func (m *ModelBase) PrepareId() interface{} {
+	return nil
+}
+
 func (m *ModelBase) Insert() error {
 	var e error
-	e = m.PreSave()
+	m.PrepareId()
+	e = m.M.PreSave()
 	if e != nil {
 		return e
 	}
@@ -72,7 +92,7 @@ func (m *ModelBase) Insert() error {
 	if e != nil {
 		return e
 	}
-	e = m.PostSave()
+	e = m.M.PostSave()
 	if e != nil {
 		return e
 	}
@@ -81,15 +101,18 @@ func (m *ModelBase) Insert() error {
 
 func (m *ModelBase) Save() error {
 	var e error
-	e = m.PreSave()
+	_ = "breakpoint"
+	m.M.PrepareId()
+	e = m.M.PreSave()
 	if e != nil {
 		return e
 	}
-	_, _, e = m.adapter.Run(base.DB_SAVE, m.M, nil)
+	adapter := m.adapter
+	_, _, e = adapter.Run(base.DB_SAVE, m.M, nil)
 	if e != nil {
 		return e
 	}
-	e = m.PostSave()
+	e = m.M.PostSave()
 	if e != nil {
 		return e
 	}

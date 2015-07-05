@@ -2,13 +2,13 @@ package orm
 
 import (
 	//"github.com/eaciit/database/base"
-	"fmt"
+	_ "fmt"
 	"github.com/eaciit/database/mongodb"
-	"runtime"
-	"strconv"
-	"sync"
+	_ "runtime"
+	_ "strconv"
+	_ "sync"
 	"testing"
-	"time"
+	_ "time"
 )
 
 type UserModel struct {
@@ -40,6 +40,7 @@ func (u *UserModel) TableName() string {
 	return "ORMUsers"
 }
 
+/*
 func TestInsert(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	count := 1000000
@@ -78,8 +79,8 @@ func TestInsert(t *testing.T) {
 
 	wg.Wait()
 }
+*/
 
-/*
 func TestInsert(t *testing.T) {
 	ctx, e := prepareContext()
 	if e != nil {
@@ -102,6 +103,7 @@ func TestInsert(t *testing.T) {
 	}
 }
 
+/*
 func TestLoad(t *testing.T) {
 	ctx, e := prepareContext()
 	if e != nil {
