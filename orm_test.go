@@ -2,13 +2,14 @@ package orm
 
 import (
 	//"github.com/eaciit/database/base"
-	_ "fmt"
+	"fmt"
 	"github.com/eaciit/database/mongodb"
-	_ "runtime"
-	_ "strconv"
-	_ "sync"
+	"github.com/eaciit/parallel"
+	"runtime"
+	"strconv"
+	"sync"
 	"testing"
-	_ "time"
+	"time"
 )
 
 type UserModel struct {
@@ -27,6 +28,10 @@ func (u *UserModel) Init() *UserModel {
 	return u
 }
 
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
 func prepareContext() (*DataContext, error) {
 	conn := mongodb.NewConnection("localhost:27017", "", "", "ectest")
 	if eConnect := conn.Connect(); eConnect != nil {
@@ -40,10 +45,11 @@ func (u *UserModel) TableName() string {
 	return "ORMUsers"
 }
 
-/*
+var ctx *DataContext
+
 func TestInsert(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	count := 1000000
+	return
+	count := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(count)
 	ctx, e := prepareContext()
@@ -52,8 +58,8 @@ func TestInsert(t *testing.T) {
 	for a := 0; a < 100; a++ {
 		go func(a int, wg *sync.WaitGroup) {
 			var u *UserModel
-			for x := 0; x < 10000; x++ {
-				i := a*10000 + x + 1
+			for x := 0; x < 10; x++ {
+				i := a*10 + x + 1
 				wg.Done()
 				u = new(UserModel)
 				ctx.Register(u)
@@ -67,7 +73,7 @@ func TestInsert(t *testing.T) {
 					t.Errorf("Error Load: %s", e.Error())
 					//return
 				}
-				fmt.Println("Inserted: " + strconv.Itoa(i))
+				//fmt.Println("Inserted: " + strconv.Itoa(i))
 			}
 		}(a, &wg)
 	}
@@ -79,8 +85,44 @@ func TestInsert(t *testing.T) {
 
 	wg.Wait()
 }
-*/
 
+func TestInsertParallel(t *testing.T) {
+	ctx, _ := prepareContext()
+	defer ctx.Close()
+	count := 50
+	keys := make([]interface{}, 0)
+	for i := 0; i < count; i++ {
+		keys = append(keys, i)
+	}
+
+	r := parallel.RunParallelJob(keys, count, insertJob, parallel.T{"ctx": ctx})
+	fmt.Printf("Run process for %v \n", r.Duration)
+	if r.Status != "OK" {
+		fmt.Printf("Error: %d fails \n %v \n", r.Fail, r.FailMessages)
+	}
+}
+
+func insertJob(key interface{}, in parallel.T, result *parallel.JobResult) error {
+	ctx := in["ctx"].(*DataContext)
+	var u *UserModel
+	i := key.(int)
+	u = new(UserModel)
+	ctx.Register(u)
+	u.Id = "user" + strconv.Itoa(i)
+	u.FullName = "ORM User " + strconv.Itoa(i)
+	u.Email = "ormuser01@email.com"
+	u.Password = "mbahmu kepet"
+	u.Enable = 1
+	e = u.Save()
+	if e != nil {
+		//t.Errorf("Error Load: %s", e.Error())
+		return fmt.Errorf("Error Load: %s", e.Error())
+	}
+	fmt.Println("Insert : " + strconv.Itoa(i))
+	return nil
+}
+
+/*
 func TestInsert(t *testing.T) {
 	ctx, e := prepareContext()
 	if e != nil {
@@ -103,7 +145,6 @@ func TestInsert(t *testing.T) {
 	}
 }
 
-/*
 func TestLoad(t *testing.T) {
 	ctx, e := prepareContext()
 	if e != nil {
