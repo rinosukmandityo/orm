@@ -1,52 +1,56 @@
 package orm
 
 import (
-	"fmt"
-	"github.com/eaciit/database/base"
-	err "github.com/eaciit/errorlib"
+	//"fmt"
+	_ "github.com/eaciit/database/base"
+	//err "github.com/eaciit/errorlib"
 )
 
 type O map[string]interface{}
 
 type IModel interface {
-	Find(map[string]interface{}) base.ICursor
-	GetById(interface{}) error
+	//Find(map[string]interface{}) base.ICursor
+	//GetById(interface{}) error
 	PreSave() error
 	PostSave() error
-	SetM(IModel) IModel
+	//SetM(IModel) IModel
 	SetCtx(*DataContext)
 	Ctx() *DataContext
 	TableName() string
 
 	PrepareId() interface{}
-	Save() error
-	Insert() error
-	Delete() error
+	//Save() error
+	//Insert() error
+	//Delete() error
 }
 
 type ModelBase struct {
-	M       IModel        `bson:"-"`
-	ctx     *DataContext  `bson:"-"`
-	adapter base.IAdapter `bson:"-"`
+	//M       IModel        `bson:"-"`
+	ctx *DataContext `bson:"-"`
+	//adapter base.IAdapter `bson:"-"`
 	//Id      interface{}   `bson:"_id"`
 	//Title   string        `bson:omitempty`
 }
 
+/*
 func (m *ModelBase) SetM(md IModel) IModel {
 	m.M = md
 	return m
 }
+*/
 
 func (m *ModelBase) Ctx() *DataContext {
 	return m.ctx
 }
 
 func (m *ModelBase) SetCtx(dc *DataContext) {
+	//ctx.Register(m)
 	m.ctx = dc
-	tableName := m.TableName()
-	m.adapter = dc.Connection.Adapter(tableName)
+	//tableName := m.TableName()
+	//m.adapter = dc.Connection.Adapter(tableName)
 }
 
+/*
 func (m *ModelBase) Find(parms map[string]interface{}) base.ICursor {
 	return m.ctx.Connection.Table(m.M.TableName(), parms)
 }
@@ -76,11 +80,13 @@ func (m *ModelBase) GetById(id interface{}) error {
 	}
 	return nil
 }
+*/
 
 func (m *ModelBase) PrepareId() interface{} {
 	return nil
 }
 
+/*
 func (m *ModelBase) Insert() error {
 	var e error
 	m.PrepareId()
@@ -128,12 +134,10 @@ func (m *ModelBase) Delete() error {
 	}
 	return nil
 }
+*/
 
 func (m *ModelBase) TableName() string {
-	if m.M == nil {
-		return "GenericTables"
-	}
-	return m.M.TableName()
+	return "GenericTables"
 }
 
 func (m *ModelBase) PreSave() error {

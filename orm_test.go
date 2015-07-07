@@ -7,7 +7,7 @@ import (
 	"github.com/eaciit/parallel"
 	"runtime"
 	"strconv"
-	"sync"
+	_ "sync"
 	"testing"
 	"time"
 )
@@ -24,7 +24,7 @@ type UserModel struct {
 var e error
 
 func (u *UserModel) Init() *UserModel {
-	u.M = u
+	//u.M = u
 	return u
 }
 
@@ -37,7 +37,7 @@ func prepareContext() (*DataContext, error) {
 	if eConnect := conn.Connect(); eConnect != nil {
 		return nil, eConnect
 	}
-	ctx := NewDataContext(conn)
+	ctx := New(conn)
 	return ctx, nil
 }
 
@@ -48,54 +48,38 @@ func (u *UserModel) TableName() string {
 var ctx *DataContext
 
 func TestInsert(t *testing.T) {
-	return
-	count := 1000
-	wg := sync.WaitGroup{}
-	wg.Add(count)
-	ctx, e := prepareContext()
+	ctx, _ := prepareContext()
 	defer ctx.Close()
 	t0 := time.Now()
-	for a := 0; a < 100; a++ {
-		go func(a int, wg *sync.WaitGroup) {
-			var u *UserModel
-			for x := 0; x < 10; x++ {
-				i := a*10 + x + 1
-				wg.Done()
-				u = new(UserModel)
-				ctx.Register(u)
-				u.Id = "user" + strconv.Itoa(i)
-				u.FullName = "ORM User " + strconv.Itoa(i)
-				u.Email = "ormuser01@email.com"
-				u.Password = "mbahmu kepet"
-				u.Enable = 1
-				e = u.Save()
-				if e != nil {
-					t.Errorf("Error Load: %s", e.Error())
-					//return
-				}
-				//fmt.Println("Inserted: " + strconv.Itoa(i))
-			}
-		}(a, &wg)
+	count := 50000
+	for i := 0; i < count; i++ {
+		u := new(UserModel)
+		ctx.Register(u)
+		u.Id = "user" + strconv.Itoa(i)
+		u.FullName = "ORM User " + strconv.Itoa(i)
+		u.Email = "ormuser01@email.com"
+		u.Password = "mbahmu kepet"
+		u.Enable = 1
+		e = ctx.Save(u)
+		if e != nil {
+			t.Errorf("Error Load: %s", e.Error())
+			//return
+		}
 	}
-
-	defer func() {
-		d0 := time.Since(t0)
-		fmt.Printf("Completed in %v \n", d0)
-	}()
-
-	wg.Wait()
+	fmt.Printf("Run process for %v \n", time.Since(t0))
 }
 
 func TestInsertParallel(t *testing.T) {
 	ctx, _ := prepareContext()
 	defer ctx.Close()
-	count := 50
+	count := 50000
+	workerCount := 100
 	keys := make([]interface{}, 0)
 	for i := 0; i < count; i++ {
 		keys = append(keys, i)
 	}
 
-	r := parallel.RunParallelJob(keys, count, insertJob, parallel.T{"ctx": ctx})
+	r := parallel.RunParallelJob(keys, workerCount, insertJob, parallel.T{"ctx": ctx})
 	fmt.Printf("Run process for %v \n", r.Duration)
 	if r.Status != "OK" {
 		fmt.Printf("Error: %d fails \n %v \n", r.Fail, r.FailMessages)
@@ -107,18 +91,18 @@ func insertJob(key interface{}, in parallel.T, result *parallel.JobResult) error
 	var u *UserModel
 	i := key.(int)
 	u = new(UserModel)
-	ctx.Register(u)
+	//ctx.Register(u)
 	u.Id = "user" + strconv.Itoa(i)
 	u.FullName = "ORM User " + strconv.Itoa(i)
 	u.Email = "ormuser01@email.com"
 	u.Password = "mbahmu kepet"
 	u.Enable = 1
-	e = u.Save()
+	e = ctx.Save(u)
 	if e != nil {
 		//t.Errorf("Error Load: %s", e.Error())
 		return fmt.Errorf("Error Load: %s", e.Error())
 	}
-	fmt.Println("Insert : " + strconv.Itoa(i))
+	//fmt.Println("Insert : " + strconv.Itoa(i))
 	return nil
 }
 

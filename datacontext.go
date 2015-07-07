@@ -1,10 +1,11 @@
 package orm
 
 import (
+	"fmt"
 	"github.com/eaciit/config"
 	"github.com/eaciit/database/base"
 	"github.com/eaciit/database/mongodb"
-	"github.com/eaciit/errorlib"
+	err "github.com/eaciit/errorlib"
 	"strings"
 )
 
@@ -12,16 +13,19 @@ type DataContext struct {
 	//Adapter base.IAdapter
 	ConnectionName string
 	Connection     base.IConnection
+	adapters       map[string]base.IAdapter
 }
 
-func NewDataContext(conn base.IConnection) *DataContext {
+func New(conn base.IConnection) *DataContext {
 	ctx := new(DataContext)
 	ctx.Connection = conn
+	ctx.adapters = map[string]base.IAdapter{}
 	return ctx
 }
 
-func NewDataContextFromConfig(name string) (*DataContext, error) {
+func NewFromConfig(name string) (*DataContext, error) {
 	ctx := new(DataContext)
+	ctx.adapters = map[string]base.IAdapter{}
 	eSet := ctx.setConnectionFromConfigFile(name)
 	if eSet != nil {
 		return ctx, eSet
@@ -30,28 +34,91 @@ func NewDataContextFromConfig(name string) (*DataContext, error) {
 }
 
 func (d *DataContext) Register(m IModel) IModel {
-	m.SetM(m)
+	if m.Ctx() != nil {
+		return m
+	}
+
 	m.SetCtx(d)
+	a, ok := d.adapters[m.TableName()]
+	if !ok {
+		a = d.Connection.Adapter(m.TableName())
+		d.adapters[m.TableName()] = a
+	}
 	return m
 }
 
+func (d *DataContext) Find(m IModel, parms T) base.ICursor {
+	return d.Connection.Table(m.TableName(), parms)
+}
+
+func (d *DataContext) GetById(m IModel, id interface{}) error {
+	var e error
+	//return err.Error(packageName, modModel, "GetById", err.NotYetImplemented)
+	adapter, e := d.adapter(m)
+	cursor, _, e := adapter.Run(base.DB_SELECT, nil, O{"find": O{"_id": id}})
+	if e != nil {
+		return err.Error(packageName, modCtx, "GetById", e.Error())
+	}
+	b, e := cursor.Fetch(m)
+	if b == false {
+		return err.Error(packageName, modCtx, "GetById", fmt.Sprintf("Record with id:%v could not be found", id))
+	} else if e != nil {
+		return err.Error(packageName, modCtx, "GetById", fmt.Sprintf("Error parse record with id:%v | %s", id, e.Error()))
+	} else {
+		m.SetCtx(d)
+	}
+	return nil
+}
+
 func (d *DataContext) Insert(m IModel) error {
-	m = d.Register(m)
-	return m.Insert()
+	return d.saveOrInsert(m, base.DB_INSERT)
 }
 
 func (d *DataContext) Save(m IModel) error {
-	m = d.Register(m)
-	return m.Save()
+	return d.saveOrInsert(m, base.DB_SAVE)
 }
 
 func (d *DataContext) Delete(m IModel) error {
-	m = d.Register(m)
-	return m.Delete()
+	a, e := d.adapter(m)
+	if e != nil {
+		return e
+	}
+	_, _, e = a.Run(base.DB_DELETE, m, nil)
+	return e
 }
 
 func (d *DataContext) Close() {
 	d.Connection.Close()
+}
+
+func (d *DataContext) saveOrInsert(m IModel, dbOp string) error {
+	var e error
+	m.PrepareId()
+	e = m.PreSave()
+	if e != nil {
+		return e
+	}
+	a, e := d.adapter(m)
+	if e != nil {
+		return e
+	}
+	_, _, e = a.Run(dbOp, m, nil)
+	e = m.PostSave()
+	if e != nil {
+		return e
+	}
+	return e
+}
+
+func (d *DataContext) adapter(m IModel) (base.IAdapter, error) {
+	m = d.Register(m)
+	tableName := m.TableName()
+	_ = "breakpoint"
+	a, ok := d.adapters[tableName]
+	if !ok {
+		return nil, err.Error(packageName, modCtx, "adapter", "Adapter "+tableName+" is not yet initialized")
+	}
+	return a, nil
 }
 
 func (d *DataContext) setConnectionFromConfigFile(name string) error {
@@ -71,10 +138,10 @@ func (d *DataContext) setConnectionFromConfigFile(name string) error {
 		if eConnect := conn.Connect(); eConnect == nil {
 			d.Connection = conn
 		} else {
-			return errorlib.Error(packageName, modCtx, "SetConnectionFromConfigFile", eConnect.Error())
+			return err.Error(packageName, modCtx, "SetConnectionFromConfigFile", eConnect.Error())
 		}
 	} else {
-		return errorlib.Error(packageName, modCtx, "SetConnectionFromConfig", "Connection for "+connType+" is not yet implemented")
+		return err.Error(packageName, modCtx, "SetConnectionFromConfig", "Connection for "+connType+" is not yet implemented")
 	}
 	return nil
 }
