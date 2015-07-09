@@ -48,6 +48,7 @@ func (d *DataContext) Register(m IModel) IModel {
 }
 
 func (d *DataContext) Find(m IModel, parms T) base.ICursor {
+	_ = "breakpoint"
 	return d.Connection.Table(m.TableName(), parms)
 }
 
@@ -93,12 +94,12 @@ func (d *DataContext) Close() {
 
 func (d *DataContext) saveOrInsert(m IModel, dbOp string) error {
 	var e error
-	m.PrepareId()
-	e = m.PreSave()
+	a, e := d.adapter(m)
 	if e != nil {
 		return e
 	}
-	a, e := d.adapter(m)
+	m.PrepareId()
+	e = m.PreSave()
 	if e != nil {
 		return e
 	}
