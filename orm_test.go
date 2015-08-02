@@ -33,7 +33,7 @@ func init() {
 }
 
 func prepareContext() (*DataContext, error) {
-	conn := mongodb.NewConnection("localhost:27017", "", "", "ectest")
+	conn := mongodb.NewConnection("localhost:27123", "", "", "ectest")
 	if eConnect := conn.Connect(); eConnect != nil {
 		return nil, eConnect
 	}
@@ -94,8 +94,8 @@ func insertJob(key interface{}, in parallel.T, result *parallel.JobResult) error
 	//ctx.Register(u)
 	u.Id = "user" + strconv.Itoa(i)
 	u.FullName = "ORM User " + strconv.Itoa(i)
-	u.Email = "ormuser01@email.com"
-	u.Password = "mbahmu kepet"
+	u.Email = fmt.Sprintf("ormuser%d@email.com", i)
+	u.Password = "mbahmu kepet " + strconv.Itoa(i)
 	u.Enable = 1
 	e = ctx.Save(u)
 	if e != nil {

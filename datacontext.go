@@ -92,7 +92,7 @@ func (d *DataContext) Close() {
 	d.Connection.Close()
 }
 
-func (d *DataContext) saveOrInsert(m IModel, dbOp string) error {
+func (d *DataContext) saveOrInsert(m IModel, dbOp base.DB_OP) error {
 	var e error
 	a, e := d.adapter(m)
 	if e != nil {
