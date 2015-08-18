@@ -15,7 +15,7 @@ import (
 
 type UserModel struct {
 	ModelBase `bson:"-"`
-	Id        string `bson:"_id"`
+	Id        string `bson:"_id",json:"_id"`
 	FullName  string `bson:"fullname"`
 	Email     string
 	Password  string
@@ -85,25 +85,54 @@ func TestLoadAll(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
+	//t.Skip()
 	ctx, _ := prepareContext()
 	defer ctx.Close()
 	
-	u := new(UserModel)
-	ctx.DeleteMany(u, nil)
+	ctx.DeleteMany(new(UserModel), nil)
 	
 	t0 := time.Now()
-	count := 100
+	count := 10000
 	for i := 0; i < count; i++ {
-		u = new(UserModel)
+		fmt.Printf("Insert user no %d ...", i)
+		u := new(UserModel)
 		u.Id = "user" + strconv.Itoa(i)
 		u.FullName = "ORM User " + strconv.Itoa(i)
 		u.Email = "ormuser01@email.com"
 		u.Password = "mbahmu kepet"
 		u.Enable = 1
+		e = ctx.Insert(u)
+		if e != nil {
+			t.Errorf("Error Load %d: %s",i, e.Error())
+			return
+		} else {
+			fmt.Println("OK")
+		}
+	}
+	fmt.Printf("Run process for %v \n", time.Since(t0))
+}
+
+func TestUpdate(t *testing.T) {
+	t.Skip()
+	ctx, _ := prepareContext()
+	defer ctx.Close()
+	
+	t0 := time.Now()
+	count := 100
+	for i := 0; i < count; i++ {
+		fmt.Printf("Insert user no %d ...", i)
+		u := new(UserModel)
+		u.Id = "user" + strconv.Itoa(i)
+		u.FullName = "ORM User X" + strconv.Itoa(i)
+		u.Email = "ormuser01@email.com"
+		u.Password = "mbahmu kepet tha ?"
+		u.Enable = 1
 		e = ctx.Save(u)
 		if e != nil {
-			t.Errorf("Error Load: %s", e.Error())
+			t.Errorf("Error Load %d: %s",i, e.Error())
 			return
+		} else {
+			fmt.Println("OK")
 		}
 	}
 	fmt.Printf("Run process for %v \n", time.Since(t0))
