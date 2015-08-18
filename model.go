@@ -6,16 +6,14 @@ import (
 	//err "github.com/eaciit/errorlib"
 )
 
-type O map[string]interface{}
-
 type IModel interface {
 	//Find(map[string]interface{}) base.ICursor
 	//GetById(interface{}) error
 	PreSave() error
 	PostSave() error
 	//SetM(IModel) IModel
-	SetCtx(*DataContext)
-	Ctx() *DataContext
+	//SetCtx(*DataContext)
+	//Ctx() *DataContext
 	TableName() string
 
 	PrepareId() interface{}
@@ -26,7 +24,7 @@ type IModel interface {
 
 type ModelBase struct {
 	//M       IModel        `bson:"-"`
-	ctx *DataContext `bson:"-"`
+	//ctx *DataContext `bson:"-"`
 	//adapter base.IAdapter `bson:"-"`
 	//Id      interface{}   `bson:"_id"`
 	//Title   string        `bson:omitempty`
@@ -39,13 +37,15 @@ func (m *ModelBase) SetM(md IModel) IModel {
 }
 */
 
+/*
 func (m *ModelBase) Ctx() *DataContext {
 	return m.ctx
 }
+*/
 
 func (m *ModelBase) SetCtx(dc *DataContext) {
 	//ctx.Register(m)
-	m.ctx = dc
+	//m.ctx = dc
 	//tableName := m.TableName()
 	//m.adapter = dc.Connection.Adapter(tableName)
 }
@@ -60,7 +60,7 @@ func (m *ModelBase) GetById(id interface{}) error {
 		return err.Error(packageName, modCtx, "GetById", "Database Context is not yet initialized")
 	}
 	//return err.Error(packageName, modModel, "GetById", err.NotYetImplemented)
-	cursor, _, e := m.adapter.Run(base.DB_SELECT, nil, O{"find": O{"_id": id}})
+	cursor, _, e := m.adapter.Run(base.DB_SELECT, nil, tk.M{"find": tk.M{"_id": id}})
 	if e != nil {
 		return err.Error(packageName, modModel, "GetById", e.Error())
 	}
@@ -136,9 +136,11 @@ func (m *ModelBase) Delete() error {
 }
 */
 
+/*
 func (m *ModelBase) TableName() string {
 	return "GenericTables"
 }
+*/
 
 func (m *ModelBase) PreSave() error {
 	return nil

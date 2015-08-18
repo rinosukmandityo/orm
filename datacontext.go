@@ -1,11 +1,12 @@
 package orm
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/eaciit/config"
 	"github.com/eaciit/database/base"
 	"github.com/eaciit/database/mongodb"
 	err "github.com/eaciit/errorlib"
+	tk "github.com/eaciit/toolkit"
 	"strings"
 )
 
@@ -33,93 +34,60 @@ func NewFromConfig(name string) (*DataContext, error) {
 	return ctx, nil
 }
 
-func (d *DataContext) Register(m IModel) IModel {
-	if m.Ctx() != nil {
-		return m
+func (d *DataContext) Find(m IModel, parms tk.M) base.ICursor {
+	//_ = "breakpoint"
+	q := d.Connection.Query().From(m.TableName())
+	if qe := parms.Get("where", nil); qe != nil {
+		q = q.Where(qe.(*base.QE))
 	}
-
-	m.SetCtx(d)
-	a, ok := d.adapters[m.TableName()]
-	if !ok {
-		a = d.Connection.Adapter(m.TableName())
-		d.adapters[m.TableName()] = a
+	if qe := parms.Get("order", nil); qe != nil {
+		q = q.OrderBy(qe.([]string)...)
 	}
-	return m
-}
-
-func (d *DataContext) Find(m IModel, parms T) base.ICursor {
-	_ = "breakpoint"
-	return d.Connection.Table(m.TableName(), parms)
+	if qe := parms.Get("skip", nil); qe != nil {
+		q = q.Skip(qe.(int))
+	}
+	if qe := parms.Get("limit", nil); qe != nil {
+		q = q.Limit(qe.(int))
+	}
+	return q.Cursor(nil)
 }
 
 func (d *DataContext) GetById(m IModel, id interface{}) error {
-	var e error
-	//return err.Error(packageName, modModel, "GetById", err.NotYetImplemented)
-	adapter, e := d.adapter(m)
-	cursor, _, e := adapter.Run(base.DB_SELECT, nil, O{"find": O{"_id": id}})
-	if e != nil {
-		return err.Error(packageName, modCtx, "GetById", e.Error())
-	}
-	b, e := cursor.Fetch(m)
-	if b == false {
-		return err.Error(packageName, modCtx, "GetById", fmt.Sprintf("Record with id:%v could not be found", id))
-	} else if e != nil {
-		return err.Error(packageName, modCtx, "GetById", fmt.Sprintf("Error parse record with id:%v | %s", id, e.Error()))
-	} else {
-		m.SetCtx(d)
-	}
 	return nil
 }
 
 func (d *DataContext) Insert(m IModel) error {
-	return d.saveOrInsert(m, base.DB_INSERT)
+	q := d.Connection.Query().From(m.TableName()).Insert()
+	_, _, e := q.Run(tk.M{"data": m})
+	return e
+	//return d.saveOrInsert(m, base.DB_INSERT)
 }
 
 func (d *DataContext) Save(m IModel) error {
-	return d.saveOrInsert(m, base.DB_SAVE)
+	q := d.Connection.Query().From(m.TableName()).Save()
+	_, _, e := q.Run(tk.M{"data": m})
+	return e
 }
 
 func (d *DataContext) Delete(m IModel) error {
-	a, e := d.adapter(m)
-	if e != nil {
-		return e
+	q := d.Connection.Query().From(m.TableName()).Delete()
+	_, _, e := q.Run(tk.M{"data": m})
+	return e
+}
+
+func (d *DataContext) DeleteMany(m IModel, where *base.QE) error {
+	var e error
+	q := d.Connection.Query().From(m.TableName()).Delete()
+	if where == nil {
+		_, _, e = q.Run(nil)
+	} else {
+		_, _, e = q.Run(tk.M{"where": where})
 	}
-	_, _, e = a.Run(base.DB_DELETE, m, nil)
 	return e
 }
 
 func (d *DataContext) Close() {
 	d.Connection.Close()
-}
-
-func (d *DataContext) saveOrInsert(m IModel, dbOp base.DB_OP) error {
-	var e error
-	a, e := d.adapter(m)
-	if e != nil {
-		return e
-	}
-	m.PrepareId()
-	e = m.PreSave()
-	if e != nil {
-		return e
-	}
-	_, _, e = a.Run(dbOp, m, nil)
-	e = m.PostSave()
-	if e != nil {
-		return e
-	}
-	return e
-}
-
-func (d *DataContext) adapter(m IModel) (base.IAdapter, error) {
-	m = d.Register(m)
-	tableName := m.TableName()
-	_ = "breakpoint"
-	a, ok := d.adapters[tableName]
-	if !ok {
-		return nil, err.Error(packageName, modCtx, "adapter", "Adapter "+tableName+" is not yet initialized")
-	}
-	return a, nil
 }
 
 func (d *DataContext) setConnectionFromConfigFile(name string) error {

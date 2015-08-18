@@ -1,10 +1,11 @@
 package orm
 
 import (
-	//"github.com/eaciit/database/base"
+	_ "github.com/eaciit/database/base"
+	tk "github.com/eaciit/toolkit"
 	"fmt"
 	"github.com/eaciit/database/mongodb"
-	"github.com/eaciit/parallel"
+	_ "github.com/eaciit/parallel"
 	"runtime"
 	"strconv"
 	_ "sync"
@@ -33,7 +34,7 @@ func init() {
 }
 
 func prepareContext() (*DataContext, error) {
-	conn := mongodb.NewConnection("localhost:27123", "", "", "ectest")
+	conn := mongodb.NewConnection("localhost:27888", "", "", "ectest")
 	if eConnect := conn.Connect(); eConnect != nil {
 		return nil, eConnect
 	}
@@ -47,14 +48,53 @@ func (u *UserModel) TableName() string {
 
 var ctx *DataContext
 
+func TestLoadAll(t *testing.T) {
+	ctx, e := prepareContext()
+	if e != nil {
+		t.Errorf("Error Connect: %s", e.Error())
+		return
+	}
+	defer ctx.Close()
+
+	fmt.Println("Test Load All")	
+	c := ctx.Find(new(UserModel),tk.M{
+		"where":nil,
+		"order":[]string{"_id"},
+		"take":0,
+		"limit":0,
+	})
+	defer c.Close()
+	if c == nil {
+		t.Errorf("Error Load: %s", c.Error)
+		return
+	} else {
+		count := c.Count()
+		user := new(UserModel)
+		if count > 0 {
+			_, e = c.Fetch(&user)
+		}
+		if e==nil {
+			fmt.Printf("OK...")
+			fmt.Printf("Record(s) found: %d\nSample of first record%v \n", count, tk.IfEq(count,0,nil,user))
+			fmt.Println("")
+		} else {
+			fmt.Println("NOK")
+			t.Error(e.Error())
+		}
+	}
+}
+
 func TestInsert(t *testing.T) {
 	ctx, _ := prepareContext()
 	defer ctx.Close()
+	
+	u := new(UserModel)
+	ctx.DeleteMany(u, nil)
+	
 	t0 := time.Now()
-	count := 50000
+	count := 100
 	for i := 0; i < count; i++ {
-		u := new(UserModel)
-		ctx.Register(u)
+		u = new(UserModel)
 		u.Id = "user" + strconv.Itoa(i)
 		u.FullName = "ORM User " + strconv.Itoa(i)
 		u.Email = "ormuser01@email.com"
@@ -63,93 +103,14 @@ func TestInsert(t *testing.T) {
 		e = ctx.Save(u)
 		if e != nil {
 			t.Errorf("Error Load: %s", e.Error())
-			//return
+			return
 		}
 	}
 	fmt.Printf("Run process for %v \n", time.Since(t0))
 }
 
-func TestInsertParallel(t *testing.T) {
-	ctx, _ := prepareContext()
-	defer ctx.Close()
-	count := 50000
-	workerCount := 100
-	keys := make([]interface{}, 0)
-	for i := 0; i < count; i++ {
-		keys = append(keys, i)
-	}
-
-	r := parallel.RunParallelJob(keys, workerCount, insertJob, parallel.T{"ctx": ctx})
-	fmt.Printf("Run process for %v \n", r.Duration)
-	if r.Status != "OK" {
-		fmt.Printf("Error: %d fails \n %v \n", r.Fail, r.FailMessages)
-	}
-}
-
-func insertJob(key interface{}, in parallel.T, result *parallel.JobResult) error {
-	ctx := in["ctx"].(*DataContext)
-	var u *UserModel
-	i := key.(int)
-	u = new(UserModel)
-	//ctx.Register(u)
-	u.Id = "user" + strconv.Itoa(i)
-	u.FullName = "ORM User " + strconv.Itoa(i)
-	u.Email = fmt.Sprintf("ormuser%d@email.com", i)
-	u.Password = "mbahmu kepet " + strconv.Itoa(i)
-	u.Enable = 1
-	e = ctx.Save(u)
-	if e != nil {
-		//t.Errorf("Error Load: %s", e.Error())
-		return fmt.Errorf("Error Load: %s", e.Error())
-	}
-	//fmt.Println("Insert : " + strconv.Itoa(i))
-	return nil
-}
-
-/*
-func TestInsert(t *testing.T) {
-	ctx, e := prepareContext()
-	if e != nil {
-		t.Errorf("Error Connect: %s", e.Error())
-		return
-	}
-	defer ctx.Close()
-
-	u := new(UserModel)
-	ctx.Register(u)
-	u.Id = "user01"
-	u.FullName = "ORM User 01"
-	u.Email = "ormuser01@email.com"
-	u.Password = "mbahmu kepet"
-	u.Enable = 1
-	e = u.Save()
-	if e != nil {
-		t.Errorf("Error Load: %s", e.Error())
-		return
-	}
-}
-
-func TestLoad(t *testing.T) {
-	ctx, e := prepareContext()
-	if e != nil {
-		t.Errorf("Error Connect: %s", e.Error())
-		return
-	}
-	defer ctx.Close()
-
-	u := new(UserModel)
-	ctx.Register(u)
-	e = u.GetById("user01")
-	if e != nil {
-		t.Errorf("Error Load: %s", e.Error())
-		return
-	} else {
-		fmt.Printf("UserModel: %v \n", u)
-		fmt.Println("")
-	}
-}
-
 func TestDelete(t *testing.T) {
+	t.Skip()
 	ctx, e := prepareContext()
 	if e != nil {
 		t.Errorf("Error Connect: %s", e.Error())
@@ -157,11 +118,10 @@ func TestDelete(t *testing.T) {
 	}
 	defer ctx.Close()
 	u := new(UserModel)
-	ctx.Register(u)
-	e = u.GetById("user01")
+	e = ctx.GetById(u,"user01")
 	if e == nil {
-		fmt.Printf("Will Delete UserModel: %v \n", u.M)
-		e = u.Delete()
+		fmt.Printf("Will Delete UserModel: %v \n", u)
+		e = ctx.Delete(u)
 		if e != nil {
 			t.Errorf("Error Load: %s", e.Error())
 			return
@@ -171,4 +131,3 @@ func TestDelete(t *testing.T) {
 		}
 	}
 }
-*/
