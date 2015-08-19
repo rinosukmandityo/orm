@@ -14,19 +14,19 @@ type DataContext struct {
 	//Adapter base.IAdapter
 	ConnectionName string
 	Connection     base.IConnection
-	adapters       map[string]base.IAdapter
+	//adapters       map[string]base.IAdapter
 }
 
 func New(conn base.IConnection) *DataContext {
 	ctx := new(DataContext)
 	ctx.Connection = conn
-	ctx.adapters = map[string]base.IAdapter{}
+	//ctx.adapters = map[string]base.IAdapter{}
 	return ctx
 }
 
 func NewFromConfig(name string) (*DataContext, error) {
 	ctx := new(DataContext)
-	ctx.adapters = map[string]base.IAdapter{}
+	//ctx.adapters = map[string]base.IAdapter{}
 	eSet := ctx.setConnectionFromConfigFile(name)
 	if eSet != nil {
 		return ctx, eSet
