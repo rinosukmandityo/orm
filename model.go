@@ -9,6 +9,7 @@ import (
 type IModel interface {
 	//Find(map[string]interface{}) base.ICursor
 	//GetById(interface{}) error
+	RecordId() interface{}
 	PreSave() error
 	PostSave() error
 	//SetM(IModel) IModel
@@ -26,8 +27,12 @@ type ModelBase struct {
 	//M       IModel        `bson:"-"`
 	//ctx *DataContext `bson:"-"`
 	//adapter base.IAdapter `bson:"-"`
-	//Id      interface{}   `bson:"_id"`
-	//Title   string        `bson:omitempty`
+	Id    interface{} `bson:"_id"`
+	Title string      `bson:omitempty`
+}
+
+func (m *ModelBase) RecordId() interface{} {
+	return m.Id
 }
 
 /*

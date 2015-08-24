@@ -64,8 +64,18 @@ func (d *DataContext) Insert(m IModel) error {
 }
 
 func (d *DataContext) Save(m IModel) error {
+	var e error
+	if m.RecordId() == nil {
+		m.PrepareId()
+	}
+	if e = m.PreSave(); e != nil {
+		return err.Error(packageName, modCtx, m.TableName()+".PreSave", e.Error())
+	}
 	q := d.Connection.Query().From(m.TableName()).Save()
-	_, _, e := q.Run(tk.M{"data": m})
+	_, _, e = q.Run(tk.M{"data": m})
+	if e = m.PostSave(); e != nil {
+		return err.Error(packageName, modCtx, m.TableName()+",PostSave", e.Error())
+	}
 	return e
 }
 
