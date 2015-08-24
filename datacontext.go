@@ -52,8 +52,10 @@ func (d *DataContext) Find(m IModel, parms tk.M) base.ICursor {
 	return q.Cursor(nil)
 }
 
-func (d *DataContext) GetById(m IModel, id interface{}) error {
-	return nil
+func (d *DataContext) GetById(m IModel, id interface{}) (bool, error) {
+	q := d.Connection.Query().From(m.TableName()).Where(base.Eq("_id", id))
+	c := q.Cursor(nil)
+	return c.FetchClose(m)
 }
 
 func (d *DataContext) Insert(m IModel) error {

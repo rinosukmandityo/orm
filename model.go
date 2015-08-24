@@ -3,6 +3,7 @@ package orm
 import (
 	//"fmt"
 	_ "github.com/eaciit/database/base"
+	//tk "github.com/eaciit/toolkit"
 	//err "github.com/eaciit/errorlib"
 )
 
