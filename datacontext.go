@@ -35,7 +35,7 @@ func NewFromConfig(name string) (*DataContext, error) {
 }
 
 func (d *DataContext) Find(m IModel, parms tk.M) base.ICursor {
-	//_ = "breakpoint"
+	////_ = "breakpoint"
 	q := d.Connection.Query().From(m.TableName())
 	if qe := parms.Get("where", nil); qe != nil {
 		q = q.Where(qe.(*base.QE))
