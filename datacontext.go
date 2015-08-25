@@ -1,7 +1,7 @@
 package orm
 
 import (
-	//"fmt"
+	"fmt"
 	"github.com/eaciit/config"
 	"github.com/eaciit/database/base"
 	"github.com/eaciit/database/mongodb"
@@ -38,6 +38,7 @@ func (d *DataContext) Find(m IModel, parms tk.M) base.ICursor {
 	////_ = "breakpoint"
 	q := d.Connection.Query().From(m.TableName())
 	if qe := parms.Get("where", nil); qe != nil {
+		//fmt.Printf("%v \n", qe)
 		q = q.Where(qe.(*base.QE))
 	}
 	if qe := parms.Get("order", nil); qe != nil {
@@ -105,7 +106,7 @@ func (d *DataContext) Close() {
 func (d *DataContext) setConnectionFromConfigFile(name string) error {
 	d.ConnectionName = name
 	if d.ConnectionName == "" {
-		d.ConnectionName = "Default"
+		d.ConnectionName = fmt.Sprintf("Default")
 	}
 
 	connType := strings.ToLower(config.Get("Connection_" + d.ConnectionName + "_Type").(string))
