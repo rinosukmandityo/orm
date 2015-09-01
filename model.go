@@ -3,7 +3,7 @@ package orm
 import (
 	//"fmt"
 	_ "github.com/eaciit/database/base"
-	//tk "github.com/eaciit/toolkit"
+	tk "github.com/eaciit/toolkit"
 	//err "github.com/eaciit/errorlib"
 )
 
@@ -28,12 +28,12 @@ type ModelBase struct {
 	//M       IModel        `bson:"-"`
 	//ctx *DataContext `bson:"-"`
 	//adapter base.IAdapter `bson:"-"`
-	Id    interface{} `bson:"_id"`
-	Title string      `bson:omitempty`
+	//Id    interface{} `bson:"_id"`
+	//Title string      `bson:omitempty`
 }
 
 func (m *ModelBase) RecordId() interface{} {
-	return m.Id
+	return tk.Id(m)
 }
 
 /*
