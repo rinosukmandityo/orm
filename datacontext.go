@@ -14,7 +14,17 @@ type DataContext struct {
 	//Adapter base.IAdapter
 	ConnectionName string
 	Connection     base.IConnection
+	pooling        bool
 	//adapters       map[string]base.IAdapter
+}
+
+func (d *DataContext) SetPooling(p bool) *DataContext {
+	d.pooling = p
+	return d
+}
+
+func (d *DataContext) Pooling() bool {
+	return d.pooling
 }
 
 func New(conn base.IConnection) *DataContext {
@@ -50,17 +60,18 @@ func (d *DataContext) Find(m IModel, parms tk.M) base.ICursor {
 	if qe := parms.Get("limit", nil); qe != nil {
 		q = q.Limit(qe.(int))
 	}
+	//fmt.Printf("Debug Q: %s\n", tk.JsonString(q))
 	return q.Cursor(nil)
 }
 
 func (d *DataContext) GetById(m IModel, id interface{}) (bool, error) {
-	q := d.Connection.Query().From(m.TableName()).Where(base.Eq("_id", id))
+	q := d.Connection.Query().SetPooling(d.Pooling()).From(m.TableName()).Where(base.Eq("_id", id))
 	c := q.Cursor(nil)
 	return c.FetchClose(m)
 }
 
 func (d *DataContext) Insert(m IModel) error {
-	q := d.Connection.Query().From(m.TableName()).Insert()
+	q := d.Connection.Query().SetPooling(d.Pooling()).From(m.TableName()).Insert()
 	_, _, e := q.Run(tk.M{"data": m})
 	return e
 	//return d.saveOrInsert(m, base.DB_INSERT)
@@ -74,7 +85,7 @@ func (d *DataContext) Save(m IModel) error {
 	if e = m.PreSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+".PreSave", e.Error())
 	}
-	q := d.Connection.Query().From(m.TableName()).Save()
+	q := d.Connection.Query().SetPooling(d.Pooling()).From(m.TableName()).Save()
 	_, _, e = q.Run(tk.M{"data": m})
 	if e = m.PostSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+",PostSave", e.Error())
@@ -83,14 +94,15 @@ func (d *DataContext) Save(m IModel) error {
 }
 
 func (d *DataContext) Delete(m IModel) error {
-	q := d.Connection.Query().From(m.TableName()).Delete()
+	q := d.Connection.Query().SetPooling(d.Pooling()).From(m.TableName()).Delete()
+	//fmt.Printf("Delete data with ID: %v \n", m.RecordId())
 	_, _, e := q.Run(tk.M{"data": m})
 	return e
 }
 
 func (d *DataContext) DeleteMany(m IModel, where *base.QE) error {
 	var e error
-	q := d.Connection.Query().From(m.TableName()).Delete()
+	q := d.Connection.Query().SetPooling(d.Pooling()).From(m.TableName()).Delete()
 	if where == nil {
 		_, _, e = q.Run(nil)
 	} else {
