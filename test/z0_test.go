@@ -65,13 +65,13 @@ func TestLoadAll(t *testing.T) {
 		return
 	} else {
 		count := c.Count()
-		user := new(UserModel)
+		users := []UserModel{}
 		if count > 0 {
-			_, e = c.Fetch(&user, 1, false)
+			e = c.Fetch(&users, 0, false)
 		}
 		if e == nil {
 			fmt.Printf("OK...")
-			fmt.Printf("Record(s) found: %d\nSample of first record%v \n", count, tk.IfEq(count, 0, nil, user))
+			fmt.Printf("Record(s) found: %d\nSample of first record: %s \n", count, tk.IfEq(count, 0, "", users[0].Email))
 			fmt.Println("")
 		} else {
 			fmt.Println("NOK")
@@ -88,7 +88,7 @@ func TestInsert(t *testing.T) {
 	ctx.DeleteMany(new(UserModel), nil)
 
 	t0 := time.Now()
-	count := 100
+	count := 20
 	for i := 1; i <= count; i++ {
 		fmt.Printf("Insert user no %d ...", i)
 		u := new(UserModel)
@@ -146,7 +146,7 @@ func TestDelete(t *testing.T) {
 	u := new(UserModel)
 	_, e = ctx.GetById(u, "user1")
 	if e == nil {
-		fmt.Printf("Will Delete UserModel: %v \n", u)
+		fmt.Printf("Will Delete UserModel:\n %s \n", tk.JsonString(u))
 		e = ctx.Delete(u)
 		if e != nil {
 			t.Errorf("Error Load: %s", e.Error())
@@ -155,5 +155,7 @@ func TestDelete(t *testing.T) {
 			fmt.Printf("UserModel: %v has been deleted \n", u)
 			fmt.Println("")
 		}
+	} else {
+		t.Errorf("Delete error: %s", e.Error())
 	}
 }

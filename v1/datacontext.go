@@ -65,16 +65,13 @@ func (d *DataContext) Find(m IModel, parms tk.M) dbox.ICursor {
 }
 
 func (d *DataContext) GetById(m IModel, id interface{}) (bool, error) {
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Where(dbox.Eq("_id", id))
+	var e error
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
 	c, _ := q.Cursor(nil)
-	ds, e := c.Fetch(m, 1, true)
+	e = c.Fetch(m, 1, false)
 	if e != nil {
 		return false, err.Error(packageName, modCtx, "GetById", e.Error())
 	}
-	if len(ds.Data) == 0 {
-		return false, nil
-	}
-	m = ds.Data[0].(IModel)
 	return true, nil
 }
 
