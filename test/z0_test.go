@@ -89,7 +89,7 @@ func TestUpdate(t *testing.T) {
 		u := new(UserModel)
 		u.ID = fmt.Sprintf("user%d", i+1)
 		fmt.Printf("Update user %s ...", u.ID)
-		e := ctx.GetById(u, u.ID)
+		e := ctx.GetById(u, fmt.Sprintf("user%d", i))
 		if e == nil {
 			u.FullName = "ORM User X" + strconv.Itoa(i)
 			u.Email = "ormuser01@email.com"
