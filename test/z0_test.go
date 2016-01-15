@@ -87,14 +87,15 @@ func TestUpdate(t *testing.T) {
 	count := 10
 	for i := 0; i < count; i++ {
 		u := new(UserModel)
-		u.ID = fmt.Sprintf("user%d", i+1)
+		u.ID = fmt.Sprintf("user%d", i)
 		fmt.Printf("Update user %s ...", u.ID)
-		e := ctx.GetById(u, fmt.Sprintf("user%d", i))
+		e := ctx.GetById(u, u.ID)
+		//e := ctx.GetById(u, "user3")
 		if e == nil {
 			u.FullName = "ORM User X" + strconv.Itoa(i)
 			u.Email = "ormuser01@email.com"
 			u.Password = "mbahmu kepet tha ?"
-			u.Enable = 1
+			u.Enable = 0
 			e = ctx.Save(u)
 			if e != nil {
 				t.Errorf("Error Load %d: %s", i, e.Error())

@@ -72,6 +72,7 @@ func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 func (d *DataContext) GetById(m IModel, id interface{}) error {
 	var e error
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
+	//q := d.Connection.NewQuery().From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
 	c, _ := q.Cursor(nil)
 	defer c.Close()
 	e = c.Fetch(m, 1, false)
