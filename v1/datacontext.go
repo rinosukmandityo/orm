@@ -99,7 +99,7 @@ func (d *DataContext) Save(m IModel) error {
 	if e = m.PreSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+".PreSave", e.Error())
 	}
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).SetConfig("multiexec", true).From(m.TableName()).Save()
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).SetConfig("multiexec", true).From(m.TableName()).Where(dbox.Eq("_id", m.RecordID())).Save()
 	defer q.Close()
 	e = q.Exec(tk.M{"data": m})
 	if e != nil {
