@@ -73,7 +73,10 @@ func (d *DataContext) GetById(m IModel, id interface{}) error {
 	var e error
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
 	//q := d.Connection.NewQuery().From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
-	c, _ := q.Cursor(nil)
+	c, e := q.Cursor(nil)
+	if e != nil {
+		return err.Error(packageName, modCtx, "GetById", "Cursor fail. "+e.Error())
+	}
 	defer c.Close()
 	e = c.Fetch(m, 1, false)
 	if e != nil {
@@ -99,7 +102,7 @@ func (d *DataContext) Save(m IModel) error {
 	if e = m.PreSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+".PreSave", e.Error())
 	}
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).SetConfig("multiexec", true).From(m.TableName()).Where(dbox.Eq("_id", m.RecordID())).Save()
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).SetConfig("multiexec", true).From(m.TableName()).Save()
 	defer q.Close()
 	e = q.Exec(tk.M{"data": m})
 	if e != nil {
