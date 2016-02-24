@@ -18,6 +18,11 @@ type DataContext struct {
 	//adapters       map[string]dbox.IAdapter
 }
 
+func (d *DataContext) NewModel(m IModel) IModel {
+	m.SetM(m)
+	return m
+}
+
 func (d *DataContext) SetPooling(p bool) *DataContext {
 	d.pooling = p
 	return d
@@ -44,7 +49,7 @@ func NewFromConfig(name string) (*DataContext, error) {
 	return ctx, nil
 }
 
-func (d *DataContext) Find(m IModel, parms tk.M) dbox.ICursor {
+func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	////_ = "breakpoint"
 	q := d.Connection.NewQuery().From(m.TableName())
 	if qe := parms.Get("where", nil); qe != nil {
@@ -60,19 +65,24 @@ func (d *DataContext) Find(m IModel, parms tk.M) dbox.ICursor {
 		q = q.Take(qe.(int))
 	}
 	//fmt.Printf("Debug Q: %s\n", tk.JsonString(q))
-	c, _ := q.Cursor(nil)
-	return c
+	return q.Cursor(nil)
+	//return c
 }
 
-func (d *DataContext) GetById(m IModel, id interface{}) (bool, error) {
+func (d *DataContext) GetById(m IModel, id interface{}) error {
 	var e error
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
-	c, _ := q.Cursor(nil)
+	//q := d.Connection.NewQuery().From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
+	c, e := q.Cursor(nil)
+	if e != nil {
+		return err.Error(packageName, modCtx, "GetById", "Cursor fail. "+e.Error())
+	}
+	defer c.Close()
 	e = c.Fetch(m, 1, false)
 	if e != nil {
-		return false, err.Error(packageName, modCtx, "GetById", e.Error())
+		return err.Error(packageName, modCtx, "GetById", e.Error())
 	}
-	return true, nil
+	return nil
 }
 
 func (d *DataContext) Insert(m IModel) error {
@@ -83,14 +93,21 @@ func (d *DataContext) Insert(m IModel) error {
 
 func (d *DataContext) Save(m IModel) error {
 	var e error
-	if m.RecordId() == nil {
-		m.PrepareId()
+	if m.RecordID() == nil {
+		m.PrepareID()
+		if tk.IsNilOrEmpty(m.RecordID()) {
+			return err.Error(packageName, modCtx, "Save", "No ID")
+		}
 	}
 	if e = m.PreSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+".PreSave", e.Error())
 	}
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Save()
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).SetConfig("multiexec", true).From(m.TableName()).Save()
+	defer q.Close()
 	e = q.Exec(tk.M{"data": m})
+	if e != nil {
+		return err.Error(packageName, modCtx, "Save", e.Error())
+	}
 	if e = m.PostSave(); e != nil {
 		return err.Error(packageName, modCtx, m.TableName()+",PostSave", e.Error())
 	}

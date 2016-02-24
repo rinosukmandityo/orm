@@ -12,13 +12,14 @@ import (
 )
 
 type UserModel struct {
-	ModelBase `bson:"-",json:"-"`
-	Id        string `bson:"_id",json:"_id"`
-	FullName  string `bson:"fullname"`
-	Age       int
-	Email     string
-	Password  string
-	Enable    int `bson:"enable"`
+	ModelBase  `bson:"-",json:"-"`
+	ID         string `bson:"_id",json:"_id"`
+	FullName   string `bson:"fullname"`
+	Age        int
+	Email      string
+	Password   string
+	RandomDate time.Time
+	Enable     int `bson:"enable"`
 }
 
 var e error
@@ -41,7 +42,99 @@ func (u *UserModel) TableName() string {
 	return "ORMUsers"
 }
 
+func (u *UserModel) RecordID() interface{} {
+	return u.ID
+}
+
 var ctx *DataContext
+
+func TestInsert(t *testing.T) {
+	//t.Skip()
+	ctx, _ := prepareContext()
+	defer ctx.Close()
+
+	ctx.DeleteMany(new(UserModel), nil)
+
+	t0 := time.Now()
+	count := 20
+	for i := 1; i <= count; i++ {
+		fmt.Printf("Insert user no %d ...", i)
+		u := new(UserModel)
+		u.ID = "user" + strconv.Itoa(i)
+		u.FullName = "ORM User " + strconv.Itoa(i)
+		u.Age = tk.RandInt(20) + 20
+		u.Email = "ormuser01@email.com"
+		u.Password = "mbahmu kepet"
+		u.Enable = 1
+		u.RandomDate = time.Now().Add(time.Duration(int64(tk.RandInt(1000)) * int64(time.Minute)))
+		e = ctx.Insert(u)
+		if e != nil {
+			t.Errorf("Error Load %d: %s", i, e.Error())
+			return
+		} else {
+			fmt.Println("OK")
+		}
+	}
+	fmt.Printf("Run process for %v \n", time.Since(t0))
+}
+
+func TestUpdate(t *testing.T) {
+	//t.Skip()
+	ctx, _ := prepareContext()
+	defer ctx.Close()
+
+	t0 := time.Now()
+	count := 10
+	for i := 0; i < count; i++ {
+		u := new(UserModel)
+		u.ID = fmt.Sprintf("user%d", i)
+		fmt.Printf("Update user %s ...", u.ID)
+		e := ctx.GetById(u, u.ID)
+		//e := ctx.GetById(u, "user3")
+		if e == nil {
+			u.FullName = "ORM User X" + strconv.Itoa(i)
+			u.Email = "ormuser01@email.com"
+			u.Password = "mbahmu kepet tha ?"
+			u.Enable = 0
+			e = ctx.Save(u)
+			if e != nil {
+				t.Errorf("Error Load %d: %s", i, e.Error())
+				return
+			} else {
+				fmt.Println("OK")
+			}
+		} else {
+			fmt.Println("NOK ..." + e.Error())
+		}
+	}
+	fmt.Printf("Run process for %v \n", time.Since(t0))
+}
+
+func TestDelete(t *testing.T) {
+	//t.Skip()
+	ctx, e := prepareContext()
+	if e != nil {
+		t.Errorf("Error Connect: %s", e.Error())
+		return
+	}
+	defer ctx.Close()
+	u := new(UserModel)
+	e = ctx.GetById(u, "user2")
+	if e == nil {
+		fmt.Printf("Will Delete UserModel:\n %s \n", tk.JsonString(u))
+		e = ctx.Delete(u)
+		if e != nil {
+			t.Errorf("Error Load: %s", e.Error())
+			return
+		} else {
+			tk.Unjson(tk.Jsonify(u), u)
+			fmt.Printf("UserModel: %v has been deleted \n", u.RandomDate.UTC())
+			fmt.Println("")
+		}
+	} else {
+		t.Errorf("Delete error: %s", e.Error())
+	}
+}
 
 func TestLoadAll(t *testing.T) {
 	ctx, e := prepareContext()
@@ -52,7 +145,7 @@ func TestLoadAll(t *testing.T) {
 	defer ctx.Close()
 
 	tk.Println("Test Load All")
-	c := ctx.Find(new(UserModel), tk.M{
+	c, _ := ctx.Find(new(UserModel), tk.M{
 		"where": nil,
 		"order": []string{"_id"},
 		"take":  0,
@@ -77,85 +170,5 @@ func TestLoadAll(t *testing.T) {
 			fmt.Println("NOK")
 			t.Error(e.Error())
 		}
-	}
-}
-
-func TestInsert(t *testing.T) {
-	//t.Skip()
-	ctx, _ := prepareContext()
-	defer ctx.Close()
-
-	ctx.DeleteMany(new(UserModel), nil)
-
-	t0 := time.Now()
-	count := 20
-	for i := 1; i <= count; i++ {
-		fmt.Printf("Insert user no %d ...", i)
-		u := new(UserModel)
-		u.Id = "user" + strconv.Itoa(i)
-		u.FullName = "ORM User " + strconv.Itoa(i)
-		u.Age = tk.RandInt(20) + 20
-		u.Email = "ormuser01@email.com"
-		u.Password = "mbahmu kepet"
-		u.Enable = 1
-		e = ctx.Insert(u)
-		if e != nil {
-			t.Errorf("Error Load %d: %s", i, e.Error())
-			return
-		} else {
-			fmt.Println("OK")
-		}
-	}
-	fmt.Printf("Run process for %v \n", time.Since(t0))
-}
-
-func TestUpdate(t *testing.T) {
-	//t.Skip()
-	ctx, _ := prepareContext()
-	defer ctx.Close()
-
-	t0 := time.Now()
-	count := 10
-	for i := 0; i < count; i++ {
-		fmt.Printf("Update user no %d ...", i)
-		u := new(UserModel)
-		u.Id = "user" + strconv.Itoa(i)
-		u.FullName = "ORM User X" + strconv.Itoa(i)
-		u.Email = "ormuser01@email.com"
-		u.Password = "mbahmu kepet tha ?"
-		u.Enable = 1
-		e = ctx.Save(u)
-		if e != nil {
-			t.Errorf("Error Load %d: %s", i, e.Error())
-			return
-		} else {
-			fmt.Println("OK")
-		}
-	}
-	fmt.Printf("Run process for %v \n", time.Since(t0))
-}
-
-func TestDelete(t *testing.T) {
-	//t.Skip()
-	ctx, e := prepareContext()
-	if e != nil {
-		t.Errorf("Error Connect: %s", e.Error())
-		return
-	}
-	defer ctx.Close()
-	u := new(UserModel)
-	_, e = ctx.GetById(u, "user1")
-	if e == nil {
-		fmt.Printf("Will Delete UserModel:\n %s \n", tk.JsonString(u))
-		e = ctx.Delete(u)
-		if e != nil {
-			t.Errorf("Error Load: %s", e.Error())
-			return
-		} else {
-			fmt.Printf("UserModel: %v has been deleted \n", u)
-			fmt.Println("")
-		}
-	} else {
-		t.Errorf("Delete error: %s", e.Error())
 	}
 }
