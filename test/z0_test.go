@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/mongo"
-	. "github.com/eaciit/orm/v1"
+	. "github.com/eaciit/orm"
 	tk "github.com/eaciit/toolkit"
 	"strconv"
 	"testing"
