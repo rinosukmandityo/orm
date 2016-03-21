@@ -77,6 +77,11 @@ func (d *DataContext) GetById(m IModel, id interface{}) error {
 	if e != nil {
 		return err.Error(packageName, modCtx, "GetById", "Cursor fail. "+e.Error())
 	}
+	if c.Count() == 0 {
+		// return if no records available
+		return nil
+	}
+
 	defer c.Close()
 	e = c.Fetch(m, 1, false)
 	if e != nil {
