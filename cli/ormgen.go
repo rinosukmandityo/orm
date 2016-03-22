@@ -180,7 +180,7 @@ func main() {
 							structMap[structCount].Functions[fnCount].ParamName = strings.ToLower(fnParam)
 							structMap[structCount].Functions[fnCount].FieldName = fnFieldName
 							structMap[structCount].Functions[fnCount].ParamType = fnFieldType
-							structMap[structCount].Functions[fnCount].ReturnType = "dbox.ICursor"
+							structMap[structCount].Functions[fnCount].ReturnType = "*dbox.ICursor"
 							if !impInSlice("github.com/eaciit/toolkit", structMap[structCount].Imports) {
 								structMap[structCount].Imports = append(structMap[structCount].Imports, ImportStructure{"", "github.com/eaciit/toolkit"})
 							}
