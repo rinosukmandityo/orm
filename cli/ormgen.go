@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -37,6 +38,10 @@ func DB() *orm.DataContext{
 }`
 
 type ExistingFunctionList struct {
+	Name  string
+	Lines []string
+}
+type ExistingVars struct {
 	Name  string
 	Lines []string
 }
@@ -274,6 +279,7 @@ func main() {
 	writeBaseFile(pkgName, outPath, baseFileName)
 	for _, stMap := range structMap {
 		var exFnList, keepFnList []ExistingFunctionList
+		var exVarList []ExistingVars
 		fileName := outPath + strings.ToLower(stMap.StructName) + ".go"
 		log.Println("OUTPUT FILE => ", fileName)
 		_, err := os.Stat(outPath)
@@ -287,7 +293,7 @@ func main() {
 			checkError(err)
 			defer file.Close()
 		} else {
-			exFnList = readExistingSource(fileName)
+			exFnList, exVarList = readExistingSource(fileName)
 			err := os.Remove(fileName)
 			checkError(err)
 			file, err := os.Create(fileName)
@@ -321,6 +327,11 @@ func main() {
 			_, err = fileOut.WriteString(fields.FieldName + " " + fields.FieldType + bsonStr + "\n")
 		}
 		_, err = fileOut.WriteString("}\n")
+		for _, exVar := range exVarList {
+			for _, line := range exVar.Lines {
+				_, err = fileOut.WriteString(line + "\n")
+			}
+		}
 		for _, functions := range stMap.Functions {
 			//			fmt.Printf("%+v\n", functions)
 			if strings.Index(functions.Name, "GetBy") > 0 {
@@ -482,8 +493,9 @@ func writeBaseFile(pkgName, outPath, fileName string) {
 	checkError(err)
 }
 
-func readExistingSource(path string) []ExistingFunctionList {
+func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 	var exFnList []ExistingFunctionList
+	var exVarList []ExistingVars
 	file, err := os.Open(path)
 	if err != nil {
 		log.Printf(err.Error())
@@ -495,21 +507,19 @@ func readExistingSource(path string) []ExistingFunctionList {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	var fnStart bool
+	var fnStart /*, varStart*/ bool
 	var fnName string
-	var fnCount int = -1
+	var fnCount, fnVar int = -1, -1
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
+		//		log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart)
 		if strings.HasPrefix(line, "func") {
 			fnStart = true
-			//			log.Println("LINE => ", line)
 			linet := strings.Replace(line, "func ", "", -1)
 			lineParts := strings.Split(linet, " ")
 			for _, lp := range lineParts {
 				re := regexp.MustCompile("^[A-Za-z_]")
-				//				log.Printf(" c_line %v at %v\n", re.MatchString(lp), re.FindStringIndex(lp))
 				if re.MatchString(lp) {
-					//					log.Println("LINEPART => ", lp)
 					fnName = lp[0:strings.Index(lp, "(")]
 					fnCount++
 					exFnList = append(exFnList, ExistingFunctionList{})
@@ -518,14 +528,24 @@ func readExistingSource(path string) []ExistingFunctionList {
 					break
 				}
 			}
-			//			log.Println("Function noted with name ", fnName)
 		} else if fnStart {
 			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
 		} else if line == "}" && fnStart {
 			fnStart = false
 			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, "}")
-			//			log.Println("end of func")
 		}
+		if strings.HasPrefix(line, "var") && !fnStart {
+			fnVar++
+			exVarList = append(exVarList, ExistingVars{})
+			exVarList[fnVar].Name = strconv.Itoa(fnVar)
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
+			log.Println("Save var[", fnVar, "] => ", line)
+		} /*else if line == "}" && varStart {
+			varStart = false
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, "}")
+		} else if varStart {
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
+		}*/
 	}
-	return exFnList
+	return exFnList, exVarList
 }
