@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -34,6 +35,12 @@ func CloseDb(){
 func DB() *orm.DataContext{
     return _db
 }`
+
+type ExistingFunctionList struct {
+	Name  string
+	Lines []string
+}
+
 var fieldImports = make(map[string]string)
 
 type StrucMap struct {
@@ -100,7 +107,7 @@ func main() {
 		outPath = os.Args[2]
 	}
 	sourceFile = strings.Split(sourceFile, "=")[1]
-	if _, err := os.Stat(sourceFile); err == nil {
+	if _, err := os.Stat(sourceFile); err != nil {
 		log.Println(sourceFile, "Not found; combine with working directory ")
 		sourceFile = wd + string(os.PathSeparator) + sourceFile
 	}
@@ -180,7 +187,7 @@ func main() {
 							structMap[structCount].Functions[fnCount].ParamName = strings.ToLower(fnParam)
 							structMap[structCount].Functions[fnCount].FieldName = fnFieldName
 							structMap[structCount].Functions[fnCount].ParamType = fnFieldType
-							structMap[structCount].Functions[fnCount].ReturnType = "*dbox.ICursor"
+							structMap[structCount].Functions[fnCount].ReturnType = "dbox.ICursor"
 							if !impInSlice("github.com/eaciit/toolkit", structMap[structCount].Imports) {
 								structMap[structCount].Imports = append(structMap[structCount].Imports, ImportStructure{"", "github.com/eaciit/toolkit"})
 							}
@@ -266,6 +273,7 @@ func main() {
 	baseFileName := outPath + "base.go"
 	writeBaseFile(pkgName, outPath, baseFileName)
 	for _, stMap := range structMap {
+		var exFnList, keepFnList []ExistingFunctionList
 		fileName := outPath + strings.ToLower(stMap.StructName) + ".go"
 		log.Println("OUTPUT FILE => ", fileName)
 		_, err := os.Stat(outPath)
@@ -279,6 +287,7 @@ func main() {
 			checkError(err)
 			defer file.Close()
 		} else {
+			exFnList = readExistingSource(fileName)
 			err := os.Remove(fileName)
 			checkError(err)
 			file, err := os.Create(fileName)
@@ -343,10 +352,12 @@ func main() {
 				default:
 					fnNew = fnNew + " e." + fields.FieldName + "=" + fields.DefaultValue + "\n"
 				}
+				stMap.Functions = append(stMap.Functions, FunctionStructure{"New" + stMap.StructName, "", "", "", ""})
 			} else if fields.IsPK {
 				fnRecId := "func (e *" + stMap.StructName + " ) RecordID() interface{} {\n"
 				fnRecId = fnRecId + " return e." + fields.FieldName + " \n }\n"
 				_, err = fileOut.WriteString(fnRecId)
+				stMap.Functions = append(stMap.Functions, FunctionStructure{"RecordID", "", "", "", ""})
 			}
 		}
 		fnNew = fnNew + "return e\n }\n"
@@ -354,6 +365,24 @@ func main() {
 		fnTblName := "func (e *" + stMap.StructName + ") TableName() string {\n"
 		fnTblName = fnTblName + "return \"" + stMap.TableName + "\" \n }\n"
 		_, err = fileOut.WriteString(fnTblName)
+		stMap.Functions = append(stMap.Functions, FunctionStructure{"TableName", "", "", "", ""})
+
+		for _, exFn := range exFnList {
+			//			log.Println("Check FN[" + exFn.Name + " ]")
+			if !funcInSlice(exFn.Name, stMap.Functions) {
+				//				log.Println("Check FN[" + exFn.Name + " ] NOT EXIST(), give to Keeper ")
+				keepFnList = append(keepFnList, exFn)
+			}
+		}
+		//Keeper of the lights
+		for _, exFn := range keepFnList {
+			log.Println("Function Keep => ", exFn.Name)
+			for _, exFnLine := range exFn.Lines {
+				_, err := fileOut.WriteString(exFnLine + "\n")
+				checkError(err)
+			}
+		}
+
 		// save changes
 		err = fileOut.Sync()
 		checkError(err)
@@ -418,6 +447,14 @@ func fieldInSlice(a string, list []FieldStructure) (bool, string, string) {
 	return false, "", ""
 }
 
+func funcInSlice(a string, list []FunctionStructure) bool {
+	for _, fn := range list {
+		if fn.Name == a {
+			return true
+		}
+	}
+	return false
+}
 func writeBaseFile(pkgName, outPath, fileName string) {
 	_, err := os.Stat(outPath)
 	if err != nil {
@@ -443,4 +480,52 @@ func writeBaseFile(pkgName, outPath, fileName string) {
 	_, err = fileOut.WriteString(baseGo)
 	err = fileOut.Sync()
 	checkError(err)
+}
+
+func readExistingSource(path string) []ExistingFunctionList {
+	var exFnList []ExistingFunctionList
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	var fnStart bool
+	var fnName string
+	var fnCount int = -1
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "func") {
+			fnStart = true
+			//			log.Println("LINE => ", line)
+			linet := strings.Replace(line, "func ", "", -1)
+			lineParts := strings.Split(linet, " ")
+			for _, lp := range lineParts {
+				re := regexp.MustCompile("^[A-Za-z_]")
+				//				log.Printf(" c_line %v at %v\n", re.MatchString(lp), re.FindStringIndex(lp))
+				if re.MatchString(lp) {
+					//					log.Println("LINEPART => ", lp)
+					fnName = lp[0:strings.Index(lp, "(")]
+					fnCount++
+					exFnList = append(exFnList, ExistingFunctionList{})
+					exFnList[fnCount].Name = fnName
+					exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
+					break
+				}
+			}
+			//			log.Println("Function noted with name ", fnName)
+		} else if fnStart {
+			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
+		} else if line == "}" && fnStart {
+			fnStart = false
+			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, "}")
+			//			log.Println("end of func")
+		}
+	}
+	return exFnList
 }

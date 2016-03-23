@@ -7,7 +7,7 @@ import (
 
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/mongo"
-	. "github.com/ekobudy/orm/gen"
+	. "github.com/eaciit/orm/cli/gen"
 )
 
 func InitCall() {
