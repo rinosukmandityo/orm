@@ -20,21 +20,29 @@ package office
 /* C:Employee Commented remark - any commented remak started with C: will be copied over to generated code and eliminiate its C: part*/
 struct Employee     /*Create employee.go*/
 TableName:employeTables /*Tablename on orm will be employeTables ... if no tablename define default is employees (plural name of struct in lower case) */
-ID:string
-Title:string
+ID:string:primary_key:bson`_id:json`_id /*with primary_key exist, this will generate getByID function by default*/
+Title:string:default_EMPTY TITLE:json`title /*Example of default value of string */ 
 Enable:bool:default_true    /*Field enable, type is bool, default value when New is true*/
-GetByID()          /*Will generate GetByID(id string)*Employee */
-FindByTitle()       /*Will generate FindByTitle(title string)[]*Employee */
+GetByID()          /*Will generate GetByID(id string) *Employee */
+FindByTitle()       /*Will generate FindByTitle(title string) dbox.ICursor */
+FindByEnable()   /*Will genderate FindByEnable(enable bool) dbox.ICursor */
+/*Every 'FindBy' with field name structure, orm will find the type of parameter*/
 
 /*C:Department this is a commented remark and should be copied over to code for documentation purpose*/
 struct Department
-ID:string
+ID:string:primary_key
 Title:string
 Enable:bool:defaut_true
 OwnerID:string:reference_Employee /*Field EmployeeID, is a reference to Employee. ormgen should automatically created func (d *Department) Owner()*Employee */
+
+For example please view sample.orm file
 ```
 
 Generated file should overwrite existing file and should reserve any changes that has been made outside any definition create within .orm file 
+### Limitation ##
+currently only supporting for function changes made by user, any other changes will be overwritten
+####
+
 
 Above .orm file should generate base.go, employee.go and department.go and 
 
@@ -48,7 +56,7 @@ import(
 
 var _db *orm.DataContext
 
-func SetDb(conn *dbox.IConnection)error{
+func SetDb(conn dbox.IConnection)error{
     CloseDb()
     _db = orm.New(conn)
     return nil
