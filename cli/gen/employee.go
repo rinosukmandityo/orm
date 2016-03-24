@@ -4,6 +4,8 @@ import (
 	"github.com/eaciit/dbox"
 	. "github.com/eaciit/orm"
 	"github.com/eaciit/toolkit"
+	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
 type Employee struct {
@@ -12,10 +14,9 @@ type Employee struct {
 	Title     string `json:"title" `
 	Address   string ` bson:"address" `
 	Enable    bool
+	LastLogin time.Time
+	OtherId   bson.ObjectId
 }
-
-var c int = 1
-var c1 string = "strings of me"
 
 func EmployeeGetByID(id string) *Employee {
 	employee := new(Employee)

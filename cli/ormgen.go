@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 var baseGo string = `
@@ -82,8 +81,6 @@ type ImportStructure struct {
 	ImportUrl  string
 }
 
-var wg sync.WaitGroup
-
 var (
 	wd = func() string {
 		d, _ := os.Getwd()
@@ -113,7 +110,7 @@ func main() {
 	}
 	sourceFile = strings.Split(sourceFile, "=")[1]
 	if _, err := os.Stat(sourceFile); err != nil {
-		log.Println(sourceFile, "Not found; combine with working directory ")
+		//		log.Println(sourceFile, "Not found; combine with working directory ")
 		sourceFile = wd + string(os.PathSeparator) + sourceFile
 	}
 	log.Println(" INPUT_FILE => ", sourceFile, "; OUTPATH => ", outPath)
@@ -173,7 +170,6 @@ func main() {
 					structMap[structCount].Functions = append(structMap[structCount].Functions, FunctionStructure{})
 					fnName := strings.Replace(strings.Replace(line, ")", "", -1), "(", "", -1)
 					if strings.Index(line, "GetBy") > -1 {
-						//						log.Println("Detected FnName => " + fnName + "; fieldName => " + fnName[strings.Index(fnName, "GetBy")+5:])
 						fnParam := strings.TrimSpace(fnName[strings.Index(fnName, "GetBy")+5:])
 						if ok, fnFieldName, fnFieldType := fieldInSlice(fnParam, structMap[structCount].Fields); ok {
 							structMap[structCount].Functions[fnCount] = FunctionStructure{}
@@ -184,7 +180,6 @@ func main() {
 							structMap[structCount].Functions[fnCount].ReturnType = "*" + structName
 						}
 					} else if strings.Index(line, "FindBy") > -1 {
-						//						log.Println("Detected FnName => " + fnName + "; fieldName => " + fnName[strings.Index(fnName, "FindBy")+6:])
 						fnParam := strings.TrimSpace(fnName[strings.Index(fnName, "FindBy")+6:])
 						if ok, fnFieldName, fnFieldType := fieldInSlice(fnParam, structMap[structCount].Fields); ok {
 							structMap[structCount].Functions[fnCount] = FunctionStructure{}
@@ -210,19 +205,20 @@ func main() {
 				for _, field := range fields {
 					fieldStru.FieldName = fields[0]
 					fieldStru.FieldType = fields[1]
+					impPart := strings.Split(fields[1], ".")[0]
+					//					log.Println("IMPART => ", impPart, "; FIELD IMP ", fieldImports[impPart])
+					if fieldImports[impPart] != "" {
+						if !impInSlice(fieldImports[impPart], structMap[structCount].Imports) {
+							structMap[structCount].Imports = append(structMap[structCount].Imports, ImportStructure{"", fieldImports[impPart]})
+						}
+					}
 					if strings.Index(field, "default_") > -1 {
 						fieldStru.IsDefault = true
-						//						fieldStru.FieldName = fields[0]
-						//						fieldStru.FieldType = fields[1]
 						fieldStru.DefaultValue = strings.TrimSpace(strings.Split(field, "_")[1])
 					} else if strings.Index(field, "reference_") > -1 {
-						//						fieldStru.FieldName = fields[0]
-						//						fieldStru.FieldType = fields[1]
 						fieldStru.IsReference = true
 						fieldStru.ReferenceStruct = strings.TrimSpace(strings.Split(field, "_")[1])
 					} else if strings.Index(field, "primary_key") > -1 {
-						//						fieldStru.FieldName = fields[0]
-						//						fieldStru.FieldType = fields[1]
 						fieldStru.IsPK = true
 					} else if strings.Index(field, "bson`") > -1 {
 						fieldStru.IsBson = true
@@ -244,36 +240,18 @@ func main() {
 			fieldCount = 0
 		}
 	}
-	//	log.Println("++++++++++++++++++++++++++++++++++++++++++++++")
-	//	log.Println(" ")
-	//	log.Println("")
 	for _, maps := range structMap {
-		//		fmt.Println("Package : ", maps.PackageName)
-		//		fmt.Println("Structure : ", maps.StructName)
-		//		fmt.Println("TableName : ", maps.TableName)
-		//		for c, fields := range maps.Fields {
-		//			fmt.Printf("%d %+v\n", c, fields)
-		//		}
 		for c, functions := range maps.Functions {
-			//			fmt.Printf("%d %+v\n", c, functions)
 			pField := strings.Replace(functions.Name, "GetBy", "", -1)
 			pField = strings.Replace(pField, "FindBy", "", -1)
-			//			fmt.Println("Param Field=> ", pField)
 			for _, fields := range maps.Fields {
 				if fields.FieldName == pField {
 					functions.ParamName = strings.ToLower(fields.FieldName)
 					functions.ParamType = fields.FieldType
-					//					fmt.Printf("%+v \n", functions)
 				}
 			}
 			maps.Functions[c] = functions
 		}
-		//		for c, functions := range maps.Functions {
-		//			fmt.Printf("%d %+v\n", c, functions)
-		//		}
-		//		fmt.Println("--------            -------------")
-		//		fmt.Println("-------- END STRUCT -------------")
-		//		fmt.Println("--------            -------------")
 	}
 	baseFileName := outPath + "base.go"
 	writeBaseFile(pkgName, outPath, baseFileName)
@@ -333,7 +311,6 @@ func main() {
 			}
 		}
 		for _, functions := range stMap.Functions {
-			//			fmt.Printf("%+v\n", functions)
 			if strings.Index(functions.Name, "GetBy") > 0 {
 				_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ") " + functions.ReturnType + " {\n")
 				_, err = fileOut.WriteString(strings.ToLower(stMap.StructName) + " := new(" + stMap.StructName + ")\n")
@@ -354,7 +331,6 @@ func main() {
 		fnNew := "func New" + stMap.StructName + "() *" + stMap.StructName + "{\n"
 		fnNew = fnNew + "e:= new(" + stMap.StructName + ") \n"
 		for _, fields := range stMap.Fields {
-			//			fmt.Printf("%+v \n", fields)
 			if fields.IsDefault {
 				switch fields.FieldType {
 				case "string":
@@ -378,15 +354,12 @@ func main() {
 		stMap.Functions = append(stMap.Functions, FunctionStructure{"TableName", "", "", "", ""})
 
 		for _, exFn := range exFnList {
-			//			log.Println("Check FN[" + exFn.Name + " ]")
 			if !funcInSlice(exFn.Name, stMap.Functions) {
-				//				log.Println("Check FN[" + exFn.Name + " ] NOT EXIST(), give to Keeper ")
 				keepFnList = append(keepFnList, exFn)
 			}
 		}
 		//Keeper of the lights
 		for _, exFn := range keepFnList {
-			//			log.Println("Function Keep => ", exFn.Name)
 			for _, exFnLine := range exFn.Lines {
 				_, err := fileOut.WriteString(exFnLine + "\n")
 				checkError(err)
@@ -406,6 +379,13 @@ func main() {
 			os.Exit(1)
 		}
 	case "linux":
+		cmd := exec.Command("/bin/sh", "-c", "gofmt -w "+outPath)
+		err := cmd.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
+			os.Exit(1)
+		}
+	case "darwin":
 		cmd := exec.Command("/bin/sh", "-c", "gofmt -w "+outPath)
 		err := cmd.Run()
 		if err != nil {
@@ -541,12 +521,7 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 			exVarList[fnVar].Name = strconv.Itoa(fnVar)
 			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
 			//			log.Println("Save var[", fnVar, "] => ", line)
-		} /*else if line == "}" && varStart {
-			varStart = false
-			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, "}")
-		} else if varStart {
-			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
-		}*/
+		}
 
 		//		log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart, "; is }?", line == "}")
 	}
