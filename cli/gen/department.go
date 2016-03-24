@@ -15,11 +15,13 @@ type Department struct {
 func (e *Department) RecordID() interface{} {
 	return e.ID
 }
+
 func NewDepartment() *Department {
 	e := new(Department)
 	e.Enable = true
 	return e
 }
+
 func (e *Department) TableName() string {
 	return "departments"
 }

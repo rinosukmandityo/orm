@@ -326,7 +326,7 @@ func main() {
 			}
 			_, err = fileOut.WriteString(fields.FieldName + " " + fields.FieldType + bsonStr + "\n")
 		}
-		_, err = fileOut.WriteString("}\n")
+		_, err = fileOut.WriteString("}\n\n")
 		for _, exVar := range exVarList {
 			for _, line := range exVar.Lines {
 				_, err = fileOut.WriteString(line + "\n")
@@ -348,8 +348,7 @@ func main() {
 				_, err = fileOut.WriteString("Set(\"order\",order).\n")
 				_, err = fileOut.WriteString("Set(\"skip\",skip).\n")
 				_, err = fileOut.WriteString("Set(\"limit\",limit))\n")
-				_, err = fileOut.WriteString("return dbox.NewCursor(c) \n}\n")
-
+				_, err = fileOut.WriteString("return dbox.NewCursor(c) \n}\n\n")
 			}
 		}
 		fnNew := "func New" + stMap.StructName + "() *" + stMap.StructName + "{\n"
@@ -366,15 +365,15 @@ func main() {
 				stMap.Functions = append(stMap.Functions, FunctionStructure{"New" + stMap.StructName, "", "", "", ""})
 			} else if fields.IsPK {
 				fnRecId := "func (e *" + stMap.StructName + " ) RecordID() interface{} {\n"
-				fnRecId = fnRecId + " return e." + fields.FieldName + " \n }\n"
+				fnRecId = fnRecId + " return e." + fields.FieldName + " \n }\n\n"
 				_, err = fileOut.WriteString(fnRecId)
 				stMap.Functions = append(stMap.Functions, FunctionStructure{"RecordID", "", "", "", ""})
 			}
 		}
-		fnNew = fnNew + "return e\n }\n"
+		fnNew = fnNew + "return e\n }\n\n"
 		_, err = fileOut.WriteString(fnNew)
 		fnTblName := "func (e *" + stMap.StructName + ") TableName() string {\n"
-		fnTblName = fnTblName + "return \"" + stMap.TableName + "\" \n }\n"
+		fnTblName = fnTblName + "return \"" + stMap.TableName + "\" \n }\n\n"
 		_, err = fileOut.WriteString(fnTblName)
 		stMap.Functions = append(stMap.Functions, FunctionStructure{"TableName", "", "", "", ""})
 
@@ -387,7 +386,7 @@ func main() {
 		}
 		//Keeper of the lights
 		for _, exFn := range keepFnList {
-			log.Println("Function Keep => ", exFn.Name)
+			//			log.Println("Function Keep => ", exFn.Name)
 			for _, exFnLine := range exFn.Lines {
 				_, err := fileOut.WriteString(exFnLine + "\n")
 				checkError(err)
@@ -512,8 +511,8 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 	var fnName string
 	var fnCount, fnVar int = -1, -1
 	for _, line := range lines {
+		//		log.Println("FnStart ? ", fnStart)
 		line = strings.TrimSpace(line)
-		//				log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart, "; is }?", line == "}")
 		if strings.HasPrefix(line, "func") {
 			fnStart = true
 			linet := strings.Replace(line, "func ", "", -1)
@@ -529,24 +528,27 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 					break
 				}
 			}
-		} else if fnStart {
-			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
 		} else if line == "}" && fnStart {
 			fnStart = false
 			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, "}")
+			//			log.Println("end of func: fnstart ", fnStart)
+		} else if fnStart {
+			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
 		}
 		if strings.HasPrefix(line, "var") && !fnStart {
 			fnVar++
 			exVarList = append(exVarList, ExistingVars{})
 			exVarList[fnVar].Name = strconv.Itoa(fnVar)
 			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
-			log.Println("Save var[", fnVar, "] => ", line)
+			//			log.Println("Save var[", fnVar, "] => ", line)
 		} /*else if line == "}" && varStart {
 			varStart = false
 			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, "}")
 		} else if varStart {
 			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
 		}*/
+
+		//		log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart, "; is }?", line == "}")
 	}
 	return exFnList, exVarList
 }
