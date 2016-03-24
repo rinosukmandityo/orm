@@ -398,7 +398,7 @@ func main() {
 		err = fileOut.Sync()
 		checkError(err)
 	}
-	//		fmt.Println(runtime.GOOS)
+	//	fmt.Println(runtime.GOOS)
 	switch runtime.GOOS {
 	case "windows":
 		err = exec.Command("cmd", "/c", "gofmt", "-w", outPath).Run()
@@ -407,7 +407,8 @@ func main() {
 			os.Exit(1)
 		}
 	case "linux":
-		err = exec.Command("sh", "-c", "gofmt", "-w", outPath).Run()
+		cmd := exec.Command("/bin/sh", "-c", "gofmt -w "+outPath)
+		err := cmd.Run()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
 			os.Exit(1)
@@ -512,7 +513,7 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 	var fnCount, fnVar int = -1, -1
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		//		log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart)
+		//				log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart, "; is }?", line == "}")
 		if strings.HasPrefix(line, "func") {
 			fnStart = true
 			linet := strings.Replace(line, "func ", "", -1)
