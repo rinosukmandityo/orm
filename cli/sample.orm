@@ -8,6 +8,8 @@ ID:string:primary_key:bson`_id:json`_id
 Title:string:default_EMPTY TITLE:json`title
 Address:string:bson`address
 Enable:bool:default_true    /*Field enable, type is bool, default value when New is true*/
+LastLogin:time.Time
+OtherId:bson.ObjectId
 GetByID()          /*Will generate GetByID(id string)*Employee */
 FindByTitle()       /*Will generate FindByTitle(title string)[]*Employee */
 FindByEnable() 
