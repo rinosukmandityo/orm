@@ -53,7 +53,7 @@ func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	////_ = "breakpoint"
 	q := d.Connection.NewQuery().From(m.TableName())
 	if qe := parms.Get("where", nil); qe != nil {
-		q = q.Where(qe.([]*dbox.Filter)...)
+		q = q.Where(qe.(*dbox.Filter))
 	}
 	if qe := parms.Get("order", nil); qe != nil {
 		q = q.Order(qe.([]string)...)
