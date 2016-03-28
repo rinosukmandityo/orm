@@ -70,6 +70,7 @@ type FieldStructure struct {
 }
 
 type FunctionStructure struct {
+	Type       string
 	Name       string
 	ParamName  string
 	ParamType  string
@@ -173,6 +174,7 @@ func main() {
 						fnParam := strings.TrimSpace(fnName[strings.Index(fnName, "GetBy")+5:])
 						if ok, fnFieldName, fnFieldType := fieldInSlice(fnParam, structMap[structCount].Fields); ok {
 							structMap[structCount].Functions[fnCount] = FunctionStructure{}
+							structMap[structCount].Functions[fnCount].Type = "gen"
 							structMap[structCount].Functions[fnCount].Name = structName + fnName
 							structMap[structCount].Functions[fnCount].ParamName = strings.ToLower(fnParam)
 							structMap[structCount].Functions[fnCount].FieldName = fnFieldName
@@ -183,6 +185,7 @@ func main() {
 						fnParam := strings.TrimSpace(fnName[strings.Index(fnName, "FindBy")+6:])
 						if ok, fnFieldName, fnFieldType := fieldInSlice(fnParam, structMap[structCount].Fields); ok {
 							structMap[structCount].Functions[fnCount] = FunctionStructure{}
+							structMap[structCount].Functions[fnCount].Type = "gen"
 							structMap[structCount].Functions[fnCount].Name = structName + fnName
 							structMap[structCount].Functions[fnCount].ParamName = strings.ToLower(fnParam)
 							structMap[structCount].Functions[fnCount].FieldName = fnFieldName
@@ -310,22 +313,25 @@ func main() {
 			}
 		}
 		for _, functions := range stMap.Functions {
-			if strings.Index(functions.Name, "GetBy") > 0 {
-				_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ") " + functions.ReturnType + " {\n")
-				_, err = fileOut.WriteString(strings.ToLower(stMap.StructName) + " := new(" + stMap.StructName + ")\n")
-				_, err = fileOut.WriteString("DB().GetById(" + strings.ToLower(stMap.StructName) + ", " + functions.ParamName + ")\n")
-				_, err = fileOut.WriteString("return " + strings.ToLower(stMap.StructName) + "\n")
-				_, err = fileOut.WriteString("}\n")
+			if functions.Type == "gen" {
+				if strings.Index(functions.Name, "GetBy") > 0 {
+					_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ") " + functions.ReturnType + " {\n")
+					_, err = fileOut.WriteString(strings.ToLower(stMap.StructName) + " := new(" + stMap.StructName + ")\n")
+					_, err = fileOut.WriteString("DB().GetById(" + strings.ToLower(stMap.StructName) + ", " + functions.ParamName + ")\n")
+					_, err = fileOut.WriteString("return " + strings.ToLower(stMap.StructName) + "\n")
+					_, err = fileOut.WriteString("}\n")
 
-			} else if strings.Index(functions.Name, "FindBy") > 0 {
-				_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ", order []string, skip, limit int) " + functions.ReturnType + " {\n")
-				_, err = fileOut.WriteString("c, _ := DB().Find(new(" + stMap.StructName + "),\n")
-				_, err = fileOut.WriteString("toolkit.M{}.Set(\"where\", dbox.Eq(\"" + functions.FieldName + "\"," + functions.ParamName + ")).\n")
-				_, err = fileOut.WriteString("Set(\"order\",order).\n")
-				_, err = fileOut.WriteString("Set(\"skip\",skip).\n")
-				_, err = fileOut.WriteString("Set(\"limit\",limit))\n")
-				_, err = fileOut.WriteString("return dbox.NewCursor(c) \n}\n\n")
+				} else if strings.Index(functions.Name, "FindBy") > 0 {
+					_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ", order []string, skip, limit int) " + functions.ReturnType + " {\n")
+					_, err = fileOut.WriteString("c, _ := DB().Find(new(" + stMap.StructName + "),\n")
+					_, err = fileOut.WriteString("toolkit.M{}.Set(\"where\", dbox.Eq(\"" + functions.FieldName + "\"," + functions.ParamName + ")).\n")
+					_, err = fileOut.WriteString("Set(\"order\",order).\n")
+					_, err = fileOut.WriteString("Set(\"skip\",skip).\n")
+					_, err = fileOut.WriteString("Set(\"limit\",limit))\n")
+					_, err = fileOut.WriteString("return dbox.NewCursor(c) \n}\n\n")
+				}
 			}
+
 		}
 		fnNew := "func New" + stMap.StructName + "() *" + stMap.StructName + "{\n"
 		fnNew = fnNew + "e:= new(" + stMap.StructName + ") \n"
@@ -337,12 +343,20 @@ func main() {
 				default:
 					fnNew = fnNew + " e." + fields.FieldName + "=" + fields.DefaultValue + "\n"
 				}
-				stMap.Functions = append(stMap.Functions, FunctionStructure{"New" + stMap.StructName, "", "", "", ""})
+				stMap.Functions = append(stMap.Functions, FunctionStructure{"gen", "New" + stMap.StructName, "", "", "", ""})
 			} else if fields.IsPK {
 				fnRecId := "func (e *" + stMap.StructName + " ) RecordID() interface{} {\n"
 				fnRecId = fnRecId + " return e." + fields.FieldName + " \n }\n\n"
 				_, err = fileOut.WriteString(fnRecId)
-				stMap.Functions = append(stMap.Functions, FunctionStructure{"RecordID", "", "", "", ""})
+				stMap.Functions = append(stMap.Functions, FunctionStructure{"gen", "RecordID", "", "", "", ""})
+			} else if fields.IsReference {
+				regc := regexp.MustCompile("[A-Z]?[a-z]+")
+				_fnNames := regc.FindAllString(fields.FieldName, -1)
+				_fnName := strings.Join(_fnNames, "")
+				_, err = fileOut.WriteString("func (e *" + stMap.StructName + ") " + _fnName + "() *" + fields.ReferenceStruct + " {\n")
+				_, err = fileOut.WriteString("return " + fields.ReferenceStruct + "GetByID(e." + fields.FieldName + ")\n")
+				_, err = fileOut.WriteString("}\n")
+				stMap.Functions = append(stMap.Functions, FunctionStructure{"gen", _fnName, "", "", "", ""})
 			}
 		}
 		fnNew = fnNew + "return e\n }\n\n"
@@ -350,7 +364,7 @@ func main() {
 		fnTblName := "func (e *" + stMap.StructName + ") TableName() string {\n"
 		fnTblName = fnTblName + "return \"" + stMap.TableName + "\" \n }\n\n"
 		_, err = fileOut.WriteString(fnTblName)
-		stMap.Functions = append(stMap.Functions, FunctionStructure{"TableName", "", "", "", ""})
+		stMap.Functions = append(stMap.Functions, FunctionStructure{"gen", "TableName", "", "", "", ""})
 
 		for _, exFn := range exFnList {
 			if !funcInSlice(exFn.Name, stMap.Functions) {
