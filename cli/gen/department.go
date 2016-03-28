@@ -16,6 +16,9 @@ func (e *Department) RecordID() interface{} {
 	return e.ID
 }
 
+func (e *Department) Owner() *Employee {
+	return EmployeeGetByID(e.OwnerID)
+}
 func NewDepartment() *Department {
 	e := new(Department)
 	e.Enable = true
