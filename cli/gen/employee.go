@@ -18,6 +18,19 @@ type Employee struct {
 	OtherId   bson.ObjectId
 }
 
+var c int
+var s string
+var letters = []string{"a", "b", "c", "d"}
+var fruit = []string{
+	"apple",
+	"watermelon",
+	"orange",
+}
+var anotherString string = `ABC`
+var textTemplate = `This is template
+multiline from user
+for employee.go`
+
 func EmployeeGetByID(id string) *Employee {
 	employee := new(Employee)
 	DB().GetById(employee, id)

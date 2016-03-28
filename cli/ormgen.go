@@ -206,7 +206,6 @@ func main() {
 					fieldStru.FieldName = fields[0]
 					fieldStru.FieldType = fields[1]
 					impPart := strings.Split(fields[1], ".")[0]
-					//					log.Println("IMPART => ", impPart, "; FIELD IMP ", fieldImports[impPart])
 					if fieldImports[impPart] != "" {
 						if !impInSlice(fieldImports[impPart], structMap[structCount].Imports) {
 							structMap[structCount].Imports = append(structMap[structCount].Imports, ImportStructure{"", fieldImports[impPart]})
@@ -487,11 +486,10 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	var fnStart /*, varStart*/ bool
+	var fnStart, varStart bool
 	var fnName string
 	var fnCount, fnVar int = -1, -1
 	for _, line := range lines {
-		//		log.Println("FnStart ? ", fnStart)
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "func") {
 			fnStart = true
@@ -505,25 +503,39 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 					exFnList = append(exFnList, ExistingFunctionList{})
 					exFnList[fnCount].Name = fnName
 					exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
+
 					break
 				}
 			}
 		} else if line == "}" && fnStart {
 			fnStart = false
 			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, "}")
-			//			log.Println("end of func: fnstart ", fnStart)
 		} else if fnStart {
 			exFnList[fnCount].Lines = append(exFnList[fnCount].Lines, line)
 		}
-		if strings.HasPrefix(line, "var") && !fnStart {
+		if strings.HasPrefix(line, "var") && strings.Index(line, "{") < 0 && strings.Index(line, "}") < 0 && strings.Index(line, "`") < 0 && !fnStart {
 			fnVar++
 			exVarList = append(exVarList, ExistingVars{})
 			exVarList[fnVar].Name = strconv.Itoa(fnVar)
 			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
-			//			log.Println("Save var[", fnVar, "] => ", line)
+		} else if strings.HasPrefix(line, "var") &&
+			((strings.Index(line, "{") > -1 && strings.Index(line, "}") > -1) || strings.Count(line, "`") > 1) {
+			fnVar++
+			exVarList = append(exVarList, ExistingVars{})
+			exVarList[fnVar].Name = strconv.Itoa(fnVar)
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
+		} else if strings.HasPrefix(line, "var") && (strings.Index(line, "{") > -1 || strings.Count(line, "`") == 1) && !varStart {
+			fnVar++
+			exVarList = append(exVarList, ExistingVars{})
+			exVarList[fnVar].Name = strconv.Itoa(fnVar)
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
+			varStart = true
+		} else if (strings.HasPrefix(line, "}") || strings.Count(line, "`") == 1) && varStart {
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
+			varStart = false
+		} else if varStart {
+			exVarList[fnVar].Lines = append(exVarList[fnVar].Lines, line)
 		}
-
-		//		log.Println("LINE => ", line, " is vars? ", strings.HasPrefix(line, "var"), "; fnStarts? ", fnStart, "; is }?", line == "}")
 	}
 	return exFnList, exVarList
 }
