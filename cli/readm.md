@@ -40,7 +40,7 @@ For example please view sample.orm file
 
 Generated file should overwrite existing file and should reserve any changes that has been made outside any definition create within .orm file 
 ### Limitation ##
-currently only supporting for function changes made by user, any other changes will be overwritten
+currently only supporting for function and variable changes made by user, any other changes will be overwritten
 ####
 
 
@@ -77,46 +77,92 @@ Sample or employee.go will be
 ```go
 package office
 
-import(
-    "github.com/eaciit/orm"
-    "github.com/eaciit/dbox"
-    "github.com/eaciit/toolkit"
+import (
+	"github.com/eaciit/dbox"
+	. "github.com/eaciit/orm"
+	"github.com/eaciit/toolkit"
+	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
-/*Employee Commented remark - any commented remak started with C: will be copied over to generated code and eliminiate its C: part*/
-type Employee struct{
-    ModelBase 'bson:"-",json:"-"'
-    ID         string `bson:"_id",json:"_id"`
-	Title      string
-    Enable     bool
+type Employee struct {
+	ModelBase `bson:"-",json:"-"`
+	ID        string ` bson:"_id" , json:"_id" `
+	Title     string `json:"title" `
+	Address   string ` bson:"address" `
+	Enable    bool
+	LastLogin time.Time
+	OtherId   bson.ObjectId
 }
 
-func NewEmployee() *Employee{
-    e := new(Employee)
-    e.Enable = true
-    return e   
+func EmployeeGetByID(id string) *Employee {
+	employee := new(Employee)
+	DB().GetById(employee, id)
+	return employee
+}
+func EmployeeFindByTitle(title string, order []string, skip, limit int) dbox.ICursor {
+	c, _ := DB().Find(new(Employee),
+		toolkit.M{}.Set("where", dbox.Eq("title", title)).
+			Set("order", order).
+			Set("skip", skip).
+			Set("limit", limit))
+	return dbox.NewCursor(c)
 }
 
-func (e *Employee) TableName() string{
-    return "employees"
+func EmployeeFindByEnable(enable bool, order []string, skip, limit int) dbox.ICursor {
+	c, _ := DB().Find(new(Employee),
+		toolkit.M{}.Set("where", dbox.Eq("enable", enable)).
+			Set("order", order).
+			Set("skip", skip).
+			Set("limit", limit))
+	return dbox.NewCursor(c)
 }
 
-func (e *Employee) RecordID() interface{}{
-    return e.ID
+func (e *Employee) RecordID() interface{} {
+	return e.ID
 }
 
-func EmployeeGetByID(id string) *Employee{
-    employee := new(Employee)
-    DB().GetByID(employee, id)
-    return employee
+func NewEmployee() *Employee {
+	e := new(Employee)
+	e.Title = "EMPTY TITLE"
+	e.Enable = true
+	return e
 }
 
-func EmployeeFindByTitle(title string, order []string, skip, limit int) *dbox.Cursor{
-    c, _ := DB().Find(new(Employee), 
-        toolkit.M{}.Set("where", dbox.Eq("title", Title)).
-            Set("order",order).
-            Set("skip", take).
-            Set("limit", limit) 
-    return c
+func (e *Employee) TableName() string {
+	return "employeTables"
+}
+```
+
+Sample or department.go will be
+```go
+
+import (
+	. "github.com/eaciit/orm"
+)
+
+type Department struct {
+	ModelBase `bson:"-",json:"-"`
+	ID        string ` bson:"_id" , json:"_id" `
+	Title     string
+	Enable    bool
+	OwnerID   string
+}
+
+func (e *Department) RecordID() interface{} {
+	return e.ID
+}
+
+func (e *Department) Owner() *Employee {
+	return EmployeeGetByID(e.OwnerID)
+}
+func NewDepartment() *Department {
+	e := new(Department)
+	e.Enable = true
+	return e
+}
+
+func (e *Department) TableName() string {
+	return "departments"
 }
 ```
