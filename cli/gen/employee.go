@@ -38,7 +38,7 @@ func EmployeeGetByID(id string) *Employee {
 }
 func EmployeeFindByTitle(title string, order []string, skip, limit int) dbox.ICursor {
 	c, _ := DB().Find(new(Employee),
-		toolkit.M{}.Set("where", []*dbox.Filter{dbox.Eq("title", title)}).
+		toolkit.M{}.Set("where", dbox.Eq("title", title)).
 			Set("order", order).
 			Set("skip", skip).
 			Set("limit", limit))
@@ -47,7 +47,7 @@ func EmployeeFindByTitle(title string, order []string, skip, limit int) dbox.ICu
 
 func EmployeeFindByEnable(enable bool, order []string, skip, limit int) dbox.ICursor {
 	c, _ := DB().Find(new(Employee),
-		toolkit.M{}.Set("where", []*dbox.Filter{dbox.Eq("enable", enable)}).
+		toolkit.M{}.Set("where", dbox.Eq("enable", enable)).
 			Set("order", order).
 			Set("skip", skip).
 			Set("limit", limit))

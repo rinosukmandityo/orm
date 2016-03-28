@@ -320,7 +320,7 @@ func main() {
 			} else if strings.Index(functions.Name, "FindBy") > 0 {
 				_, err = fileOut.WriteString("func " + functions.Name + "(" + functions.ParamName + " " + functions.ParamType + ", order []string, skip, limit int) " + functions.ReturnType + " {\n")
 				_, err = fileOut.WriteString("c, _ := DB().Find(new(" + stMap.StructName + "),\n")
-				_, err = fileOut.WriteString("toolkit.M{}.Set(\"where\", []*dbox.Filter{dbox.Eq(\"" + functions.FieldName + "\"," + functions.ParamName + ")}).\n")
+				_, err = fileOut.WriteString("toolkit.M{}.Set(\"where\", dbox.Eq(\"" + functions.FieldName + "\"," + functions.ParamName + ")).\n")
 				_, err = fileOut.WriteString("Set(\"order\",order).\n")
 				_, err = fileOut.WriteString("Set(\"skip\",skip).\n")
 				_, err = fileOut.WriteString("Set(\"limit\",limit))\n")
