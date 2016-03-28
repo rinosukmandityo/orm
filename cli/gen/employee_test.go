@@ -4,6 +4,9 @@ import (
 	"log"
 	"strconv"
 	"testing"
+	"time"
+
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/mongo"
@@ -25,6 +28,8 @@ func TestSave(t *testing.T) {
 	e.ID = "emp" + strconv.Itoa(10)
 	e.Title = "TEST Title"
 	e.Address = "SOme Address"
+	e.LastLogin = time.Now()
+	e.OtherId = bson.NewObjectId()
 	log.Printf("DB %+v", DB())
 	log.Printf("e %+v", e)
 	DB().Save(e)
