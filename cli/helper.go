@@ -60,7 +60,7 @@ func genGo(fi os.FileInfo, out string)error{
     if bs, e := ioutil.ReadFile(fn); e!=nil {
         return errors.New("Open error " +  e.Error())
     } else {
-        txts = strings.Split(string(bs),"\n")
+       txts = strings.Split(string(bs),"\n")
     }
     
     var e error
@@ -72,6 +72,12 @@ func genGo(fi os.FileInfo, out string)error{
             pkgName,e=getPackage(txt)
             if e!=nil {
                 return e
+            }
+            if pkgName!=sm.PkgName && sm.PkgName!="" {
+                e = sm.Write(out)
+                if e!=nil {
+                    return e
+                }
             }
             sm.PkgName = pkgName
         }
