@@ -73,14 +73,12 @@ func genGo(fi os.FileInfo, out string)error{
             if e!=nil {
                 return e
             }
-            if pkgName!=sm.PkgName && sm.PkgName!="" {
-                e = sm.Write(out)
-                if e!=nil {
-                    return e
-                }
-            }
             sm.PkgName = pkgName
         }
+    }
+    
+    if sm.Name!="" {
+        sm.Write(out)
     }
     
     log.Info("Processing " + fi.Name() + " done")

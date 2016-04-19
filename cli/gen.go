@@ -3,6 +3,7 @@ package main
 import (
     "errors"
     "strings"
+    "github.com/eaciit/toolkit"
 )
 
 type StructModel struct{
@@ -20,7 +21,10 @@ type FieldModel struct{
 }
 
 func (sm *StructModel) Write(path string)error{
-    return nil
+    if sm.PkgName=="" || sm.Name=="" {
+        return toolkit.Errorf("Both package name and struct name should be defined")
+    }
+    return toolkit.Errorf("Fail to write %s.%s : method Write is not yet implemented", sm.PkgName, sm.Name)
 }
 
 func getPackage(txt string)(string,error){
