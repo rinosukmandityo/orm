@@ -37,3 +37,28 @@ func getPackage(txt string)(string,error){
     }
     return packages[1],nil
 }
+
+func getStructName(s string)string{
+    txts := strings.Split(s," ")
+    hasStruct := false
+    for _,txt:=range txts{
+        if !hasStruct && txt=="struct"{
+            hasStruct=true
+        } else if hasStruct && txt!="" {
+            return txt
+        }
+    }
+    return ""
+}
+
+func (sm *StructModel) makeGetFn(s string)error{
+    return nil
+}
+
+func (sm *StructModel) makeFindFn(s string)error{
+    return nil
+}
+
+func (sm *StructModel) makeComment(s string)error{
+    return nil
+}

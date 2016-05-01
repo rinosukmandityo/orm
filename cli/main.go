@@ -48,7 +48,7 @@ func main(){
     source := makePath(*flagSource)
 	outPath := makePath(*flagOut)
     
-    log.Info(toolkit.Sprintf("Generating Go from %s into %s", source, outPath))
+    log.Info(toolkit.Sprintf("Generating *.go files\nSource: %s\nOutput Path: %s", source, outPath))
 
     fileInfos, e := getOrms(source)
     check(e, true, "")
