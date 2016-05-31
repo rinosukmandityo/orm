@@ -2,11 +2,12 @@ package orm
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/eaciit/config"
 	"github.com/eaciit/dbox"
 	err "github.com/eaciit/errorlib"
 	tk "github.com/eaciit/toolkit"
-	"strings"
 )
 
 type DataContext struct {
@@ -89,6 +90,12 @@ func (d *DataContext) Insert(m IModel) error {
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
 	e := q.Exec(tk.M{"data": m})
 	return e
+}
+
+func (d *DataContext) InsertOut(m IModel) (int64, error) {
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
+	id, e := q.ExecOut(tk.M{"data": m})
+	return id, e
 }
 
 func (d *DataContext) Save(m IModel) error {
