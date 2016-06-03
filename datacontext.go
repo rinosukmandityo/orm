@@ -98,6 +98,16 @@ func (d *DataContext) InsertOut(m IModel) (int64, error) {
 	return id, e
 }
 
+func (d *DataContext) InsertBulk(m []IModel) (e error) {
+	if len(m) > 0 {
+		q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m[0].TableName()).Insert()
+		e = q.Exec(tk.M{"data": m})
+	} else {
+		e = err.Error(packageName, modCtx, "InsertBulk", "No Data")
+	}
+	return
+}
+
 func (d *DataContext) Save(m IModel) error {
 	var e error
 	if m.RecordID() == nil {
