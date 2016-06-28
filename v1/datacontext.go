@@ -2,12 +2,11 @@ package orm
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/eaciit/config"
 	"github.com/eaciit/dbox"
 	err "github.com/eaciit/errorlib"
 	tk "github.com/eaciit/toolkit"
+	"strings"
 )
 
 type DataContext struct {
@@ -54,7 +53,7 @@ func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	////_ = "breakpoint"
 	q := d.Connection.NewQuery().From(m.TableName())
 	if qe := parms.Get("where", nil); qe != nil {
-		q = q.Where(qe.(*dbox.Filter))
+		q = q.Where(qe.([]*dbox.Filter)...)
 	}
 	if qe := parms.Get("order", nil); qe != nil {
 		q = q.Order(qe.([]string)...)
@@ -78,6 +77,11 @@ func (d *DataContext) GetById(m IModel, id interface{}) error {
 	if e != nil {
 		return err.Error(packageName, modCtx, "GetById", "Cursor fail. "+e.Error())
 	}
+	if c.Count() == 0 {
+		// return if no records available
+		return nil
+	}
+
 	defer c.Close()
 	e = c.Fetch(m, 1, false)
 	if e != nil {
@@ -90,22 +94,6 @@ func (d *DataContext) Insert(m IModel) error {
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
 	e := q.Exec(tk.M{"data": m})
 	return e
-}
-
-func (d *DataContext) InsertOut(m IModel) (int64, error) {
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
-	id, e := q.ExecOut(tk.M{"data": m})
-	return id, e
-}
-
-func (d *DataContext) InsertBulk(m []IModel) (e error) {
-	if len(m) > 0 {
-		q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m[0].TableName()).Insert()
-		e = q.Exec(tk.M{"data": m})
-	} else {
-		e = err.Error(packageName, modCtx, "InsertBulk", "No Data")
-	}
-	return
 }
 
 func (d *DataContext) Save(m IModel) error {
