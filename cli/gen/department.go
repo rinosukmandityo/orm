@@ -1,5 +1,6 @@
 package office
+
 /*** OrmGen Auto Generate Code - Start ***/
-struct Department{
+type Department struct {
 }
 /*** OrmGen Auto Generate Code - End ***/

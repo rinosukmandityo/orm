@@ -48,7 +48,7 @@ func (sm *StructModel) Write(path string)error{
     txts := []string{}
     txts = append(txts,"package " + sm.PkgName)
     txts = append(txts,"/*** OrmGen Auto Generate Code - Start ***/")
-    txts = append(txts,"struct " + sm.Name + "{")
+    txts = append(txts,"type " + sm.Name + " struct{")
     txts = append(txts,"}")
     txts = append(txts,"/*** OrmGen Auto Generate Code - End ***/")
      
