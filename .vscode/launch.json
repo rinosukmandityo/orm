@@ -11,13 +11,13 @@
 			"args": []
 		},
 		{
-			"name": "Gen",
+			"name": "GenTemplate",
 			"type": "go",
 			"request": "launch",
-			"mode": "debug",
-			"program": "${workspaceRoot}/cli",
+			"mode": "test",
+			"program": "${workspaceRoot}/cli/tpl/test",
 			"env": {},
-			"args": ["-out=./gen"]
+			"args": ["-test.v"]
 		}
 	]
 }
