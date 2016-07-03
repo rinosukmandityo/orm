@@ -1,0 +1,15 @@
+{"name":"office","structs":[
+    {"name":"Employee",
+    "table":"employees", 
+    "fields":[
+        {"name":"ID", "type":"string",
+            "key":"primary", "tag":"`bson:\"_id\"`",
+            "default":""},
+        {"name":"Title"},
+        {"name":"Enable","type":"boolean","default":true}
+    ],
+    "methods":[
+        {"type":"get","field":"id"},
+        {"type":"find","field":"enable"}
+    ]}
+]}

@@ -2,13 +2,13 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch",
+			"name": "Gen",
 			"type": "go",
 			"request": "launch",
-			"mode": "test",
-			"program": "${workspaceRoot}/test",
+			"mode": "debug",
+			"program": "${workspaceRoot}/cli",
 			"env": {},
-			"args": []
+			"args": ["-out=gen","-source=./ormdata"]
 		},
 		{
 			"name": "GenTemplate",

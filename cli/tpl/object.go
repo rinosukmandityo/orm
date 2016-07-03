@@ -12,7 +12,7 @@ type ORMObject struct {
 }
 
 func (o *ORMObject) TableName() string {
-	return "ORMObjects"
+	return "ormobjects"
 }
 
 func NewORMObject() *ORMObject {
