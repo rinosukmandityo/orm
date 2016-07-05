@@ -71,8 +71,7 @@ func genGo(fi os.FileInfo, source, out string) error {
 		return errors.New("Unmarshal JSON: " + e.Error())
 	}
 	for _, sm := range pkg.Structs {
-		sm.PkgName = pkg.Name
-		e = sm.Write(out)
+		e = sm.Write(pkg, out)
 		if e != nil {
 			return errors.New(toolkit.Sprintf("Write model %s: %s", sm.Name, e.Error()))
 		}

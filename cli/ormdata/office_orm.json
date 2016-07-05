@@ -1,12 +1,15 @@
-{"name":"office","structs":[
+{"name":"office",
+"structs":[
     {"name":"Employee",
     "table":"employees", 
+    "libs":"time",
     "fields":[
         {"name":"ID", "type":"string",
             "key":"primary", "tag":"`bson:\"_id\"`",
             "default":""},
         {"name":"Title"},
-        {"name":"Enable","type":"boolean","default":true}
+        {"name":"Created","type":"time.Time"},
+        {"name":"Enable","type":"bool","default":true}
     ],
     "methods":[
         {"type":"get","field":"id"},
