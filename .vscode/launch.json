@@ -11,6 +11,15 @@
 			"args": ["-out=gen","-source=./ormdata"]
 		},
 		{
+			"name": "GenTest",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${workspaceRoot}/cli/gen/test",
+			"env": {},
+			"args": ["-test.v"]
+		},
+		{
 			"name": "GenTemplate",
 			"type": "go",
 			"request": "launch",

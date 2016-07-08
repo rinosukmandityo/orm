@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	mandatoryLibs string = "github.com/eaciit/dbox,github.com/eaciit/ormgen"
+	mandatoryLibs string = "github.com/eaciit/dbox,github.com/eaciit/orm"
 )
 
 type PackageModel struct {
@@ -127,7 +127,8 @@ func (sm *StructModel) Write(pkg *PackageModel, path string) error {
 			libs(mandatoryLibs, pkg.ObjectLibs, sm.Libs)))
 
 	//--- struct definition
-	txts = append(txts, "type "+sm.Name+" struct {")
+	txts = append(txts, "type "+sm.Name+" struct {\n"+
+		"orm.ModelBase `bson:\"-\" json:\"-\"`")
 	for _, f := range sm.Fields {
 		if f.Type == "" {
 			f.Type = "string"
@@ -172,25 +173,41 @@ func (sm *StructModel) Write(pkg *PackageModel, path string) error {
 	txts = append(txts, newfn)
 
 	//--- find
-	tpl := `func {0}Find(filter *dbox.Filter, fields string, limit, skip int) dbox.ICursor {
-            config := makeFindConfig(fields, skip, limit)
+	tpl := `func {0}Find(filter *dbox.Filter, fields, orders string, limit, skip int) dbox.ICursor {
+            config := makeFindConfig(fields, orders, skip, limit)
             if filter != nil {
                 config.Set("where", filter)
             }
-            c, _ := DB().Find(new({0}), config)
+		    c, _ := DB().Find(new({0}), config)
             return c
         }`
 	txts = append(txts, toolkit.Formatf(tpl, sm.Name))
 
+	//--- get
+	tpl = `func {0}Get(filter *dbox.Filter, orders string, skip int) (emp *{0}, err error) {
+        config := makeFindConfig("", orders, skip, 1)
+        if filter != nil {
+            config.Set("where", filter)
+        }
+        c, ecursor := DB().Find(new(Employee), config)
+        if ecursor != nil {
+            return nil, ecursor
+        }
+        defer c.Close()
+
+        emp = new({0})
+        err = c.Fetch(emp, 1, false)
+        return emp, err
+    }`
+	txts = append(txts, toolkit.Formatf(tpl, sm.Name))
+
 	//-- method & get
-	/*
-		for _, method := range sm.Methods {
-			txts = append(txts, sm.buildMethod(
-				pkg,
-				method.Type,
-				method.Field))
-		}
-	*/
+	for _, method := range sm.Methods {
+		txts = append(txts, sm.buildMethod(
+			pkg,
+			method.Type,
+			method.Field))
+	}
 
 	b := bufio.NewWriter(f)
 	for _, txt := range txts {
@@ -211,6 +228,7 @@ func (sm *StructModel) buildMethod(
 	fieldIds := strings.Split(fields, ",")
 	fieldNameConcat := ""
 	filter := ""
+	filtersEq := []string{}
 	parmNames := []string{}
 	for _, fieldId := range fieldIds {
 		fieldId = strings.Trim(fieldId, " ")
@@ -219,27 +237,40 @@ func (sm *StructModel) buildMethod(
 			fieldNameConcat += field.Name
 			parmNames = append(parmNames,
 				toolkit.Sprintf("p%s %s", field.Name, field.Type))
+			fieldNameFn := strings.ToLower(field.Name)
+			if fieldNameFn == "id" {
+				fieldNameFn = "_id"
+			}
+			filtersEq = append(filtersEq,
+				toolkit.Formatf(`dbox.Eq("{0}",{1})`,
+					fieldNameFn,
+					"p"+field.Name))
 		}
+	}
+	if len(filtersEq) == 1 {
+		filter = filtersEq[0]
+	} else if len(filtersEq) > 1 {
+		filter = "dbox.And(" + strings.Join(filtersEq, ",") + ")"
 	}
 
 	var tpl string
 	if methodType == MethodFind {
-		tpl = "func {0}FindBy{1}({2},fields string,limit,skip int) dbox.ICursor{\n" +
-			"config := makeFindConfig(fields, skip, limit)" +
-			"config.Set(\"where\"," + filter + ")" +
-			"c, _ := DB().Find(config)" +
-			"return c\n" +
-			"}"
+		tpl = `
+            func {0}FindBy{1}({2},fields string,limit,skip int) dbox.ICursor{
+			return {0}Find({3},"","",0,0)
+			}`
 	} else {
-		tpl = "func {0}GetBy{1}({2}) *{0}{\n" +
-			"db:=" + pkg.Name + ".DB()" +
-			"e := db.Find(" + filter + ")" +
-			"return nil\n" +
-			"}"
+		tpl = `
+            func {0}GetBy{1}({2},orders string)(*{0},error){
+			    return {0}Get({3},"",0)
+			}
+            `
 	}
-	return toolkit.Formatf(tpl, sm.Name,
-		fieldNameConcat,
-		strings.Join(parmNames, ","))
+	return toolkit.Formatf(tpl,
+		sm.Name,                      //--0
+		fieldNameConcat,              //--1
+		strings.Join(parmNames, ","), //--2
+		filter)
 }
 
 func (sm *StructModel) Field(fn string) *FieldModel {

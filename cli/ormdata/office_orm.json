@@ -8,11 +8,14 @@
             "key":"primary", "tag":"`bson:\"_id\"`",
             "default":""},
         {"name":"Title"},
+        {"name":"Address"},
+        {"name":"LastLogin","type":"time.Time"},
         {"name":"Created","type":"time.Time"},
         {"name":"Enable","type":"bool","default":true}
     ],
     "methods":[
         {"type":"get","field":"id"},
+        {"type":"get","field":"title,enable"},
         {"type":"find","field":"enable"}
     ]}
 ]}

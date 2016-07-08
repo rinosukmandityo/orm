@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	ConfigWhere string = "where"
-	ConfigOrder        = "order"
-	ConfigSort         = "order"
-	ConfigTake         = "limit"
-	ConfigLimit        = "limit"
-	ConfigTop          = "limit"
-	ConfigSkip         = "skip"
+	ConfigWhere  string = "where"
+	ConfigOrder         = "order"
+	ConfigSort          = "order"
+	ConfigTake          = "limit"
+	ConfigLimit         = "limit"
+	ConfigTop           = "limit"
+	ConfigSkip          = "skip"
+	ConfigSelect        = "select"
 )
 
 type DataContext struct {
@@ -63,6 +64,11 @@ func NewFromConfig(name string) (*DataContext, error) {
 func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	////_ = "breakpoint"
 	q := d.Connection.NewQuery().From(m.TableName())
+	if qe := parms.Get(ConfigSelect); qe != nil {
+		fields := qe.(string)
+		selectFields := strings.Split(fields, ",")
+		q = q.Select(selectFields...)
+	}
 	if qe := parms.Get(ConfigWhere, nil); qe != nil {
 		q = q.Where(qe.(*dbox.Filter))
 	}

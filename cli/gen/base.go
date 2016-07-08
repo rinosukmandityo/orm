@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/eaciit/dbox"
-	"github.com/eaciit/ormgen"
+	"github.com/eaciit/orm"
 	"github.com/eaciit/toolkit"
 )
 
@@ -57,11 +57,15 @@ func DB(ids ...string) *orm.DataContext {
 	return _db
 }
 
-func makeFindConfig(fields string, skip, limit int) toolkit.M {
+func makeFindConfig(fields, orders string, skip, limit int) toolkit.M {
 	config := toolkit.M{}
 	if fields != "" {
 		fieldses := strings.Split(fields, ",")
 		config.Set("select", fieldses)
+	}
+	if orders != "" {
+		fieldses := strings.Split(orders, ",")
+		config.Set("order", fieldses)
 	}
 	if skip > 0 {
 		config.Set("skip", skip)
