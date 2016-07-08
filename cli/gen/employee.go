@@ -2,69 +2,60 @@ package office
 
 import (
 	"github.com/eaciit/dbox"
-	. "github.com/eaciit/orm"
-	"github.com/eaciit/toolkit"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/eaciit/orm"
 	"time"
 )
 
 type Employee struct {
-	ModelBase `bson:"-",json:"-"`
-	ID        string ` bson:"_id" , json:"_id" `
-	Title     string `json:"title" `
-	Address   string ` bson:"address" `
-	Enable    bool
-	LastLogin time.Time
-	OtherId   bson.ObjectId
+	orm.ModelBase `bson:"-" json:"-"`
+	ID            string `bson:"_id"`
+	Title         string
+	Address       string
+	LastLogin     time.Time
+	Created       time.Time
+	Enable        bool
 }
 
-var c int
-var s string
-var letters = []string{"a", "b", "c", "d"}
-var fruit = []string{
-	"apple",
-	"watermelon",
-	"orange",
+func (o *Employee) TableName() string {
+	return "employees"
 }
-var anotherString string = `ABC`
-var textTemplate = `This is template
-multiline from user
-for employee.go`
-
-func EmployeeGetByID(id string) *Employee {
-	employee := new(Employee)
-	DB().GetById(employee, id)
-	return employee
-}
-func EmployeeFindByTitle(title string, order []string, skip, limit int) dbox.ICursor {
-	c, _ := DB().Find(new(Employee),
-		toolkit.M{}.Set("where", dbox.Eq("title", title)).
-			Set("order", order).
-			Set("skip", skip).
-			Set("limit", limit))
-	return dbox.NewCursor(c)
-}
-
-func EmployeeFindByEnable(enable bool, order []string, skip, limit int) dbox.ICursor {
-	c, _ := DB().Find(new(Employee),
-		toolkit.M{}.Set("where", dbox.Eq("enable", enable)).
-			Set("order", order).
-			Set("skip", skip).
-			Set("limit", limit))
-	return dbox.NewCursor(c)
-}
-
-func (e *Employee) RecordID() interface{} {
-	return e.ID
-}
-
 func NewEmployee() *Employee {
-	e := new(Employee)
-	e.Title = "EMPTY TITLE"
-	e.Enable = true
-	return e
+	o := new(Employee)
+	o.Enable = true
+	return o
+}
+func EmployeeFind(filter *dbox.Filter, fields, orders string, limit, skip int) dbox.ICursor {
+	config := makeFindConfig(fields, orders, skip, limit)
+	if filter != nil {
+		config.Set("where", filter)
+	}
+	c, _ := DB().Find(new(Employee), config)
+	return c
+}
+func EmployeeGet(filter *dbox.Filter, orders string, skip int) (emp *Employee, err error) {
+	config := makeFindConfig("", orders, skip, 1)
+	if filter != nil {
+		config.Set("where", filter)
+	}
+	c, ecursor := DB().Find(new(Employee), config)
+	if ecursor != nil {
+		return nil, ecursor
+	}
+	defer c.Close()
+
+	emp = new(Employee)
+	err = c.Fetch(emp, 1, false)
+	return emp, err
 }
 
-func (e *Employee) TableName() string {
-	return "employeTables"
+func EmployeeGetByID(pID string, orders string) (*Employee, error) {
+	return EmployeeGet(dbox.Eq("_id", pID), "", 0)
+}
+
+func EmployeeGetByTitleEnable(pTitle string, pEnable bool, orders string) (*Employee, error) {
+	return EmployeeGet(dbox.And(dbox.Eq("title", pTitle), dbox.Eq("enable", pEnable)), "", 0)
+}
+
+func EmployeeFindByEnable(pEnable bool, fields string, limit, skip int) dbox.ICursor {
+	return EmployeeFind(dbox.Eq("enable", pEnable), "", "", 0, 0)
 }

@@ -1,40 +1,17 @@
 package main
-
+/*
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
+    "flag"
 	"strings"
+    "github.com/eaciit/toolkit"
 )
-
-var baseGo string = `
-import(
-    "github.com/eaciit/dbox"
-    "github.com/eaciit/orm"
-)
-
-var _db *orm.DataContext
-
-func SetDb(conn dbox.IConnection)error{
-    CloseDb()
-    _db = orm.New(conn)
-    return nil
-}
-
-func CloseDb(){
-    if _db!=nil{
-        _db.Close()    
-    }
-}
-
-func DB() *orm.DataContext{
-    return _db
-}`
 
 type ExistingFunctionList struct {
 	Name  string
@@ -82,39 +59,16 @@ type ImportStructure struct {
 	ImportUrl  string
 }
 
-var (
-	wd = func() string {
-		d, _ := os.Getwd()
-		return d
-	}()
-)
-var sourceFile, outPath string
-var structMap []StrucMap
-
-func init() {
-	fieldImports["time"] = "time"
-	fieldImports["bson"] = "gopkg.in/mgo.v2/bson"
-}
-
-func main() {
-	//	log.Println("Current Dir", wd)
-	if len(os.Args) == 1 {
-		fmt.Println("Usage ormgen -file=inputfile -out=folderoutpath")
-		os.Exit(2)
-	} else if len(os.Args) == 2 {
-		sourceFile = os.Args[1]
-		//		sourceFile = strings.Split(sourceFile, "=")[1]
-		outPath = wd + string(os.PathSeparator) + "gen" + string(os.PathSeparator)
-	} else if len(os.Args) == 3 {
-		sourceFile = os.Args[1]
-		outPath = os.Args[2]
-	}
+func _main() {
+    flag.Parse()
+    sourceFile = *flagSourceFile
+	outPath = *flagOut
+    
 	sourceFile = strings.Split(sourceFile, "=")[1]
 	if _, err := os.Stat(sourceFile); err != nil {
 		//		log.Println(sourceFile, "Not found; combine with working directory ")
 		sourceFile = wd + string(os.PathSeparator) + sourceFile
 	}
-	log.Println(" INPUT_FILE => ", sourceFile, "; OUTPATH => ", outPath)
 	inputLines, err := readLines(sourceFile)
 	if err != nil {
 		log.Println("Error reading source ORM file")
@@ -553,3 +507,4 @@ func readExistingSource(path string) ([]ExistingFunctionList, []ExistingVars) {
 	}
 	return exFnList, exVarList
 }
+*/
