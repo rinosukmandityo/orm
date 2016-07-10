@@ -71,7 +71,10 @@ func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	}
 	if qe := parms.Get(ConfigWhere, nil); qe != nil {
 		//q = q.Where(qe.(*dbox.Filter))
-		q = q.Where(dbox.And(qe.([]*dbox.Filter)...))
+		filters := qe.([]*dbox.Filter)
+		if len(filters) > 0 {
+			q = q.Where(dbox.And(filters...))
+		}
 	}
 	if qe := parms.Get(ConfigOrder, nil); qe != nil {
 		q = q.Order(qe.([]string)...)
