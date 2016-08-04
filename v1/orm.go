@@ -7,3 +7,10 @@ const (
 )
 
 //type T map[string]interface{}
+
+const (
+	Where string = "where"
+	Order        = "order"
+	Take         = "take"
+	Limit        = "limit"
+)

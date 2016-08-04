@@ -2,11 +2,23 @@ package orm
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/eaciit/config"
 	"github.com/eaciit/dbox"
 	err "github.com/eaciit/errorlib"
 	tk "github.com/eaciit/toolkit"
-	"strings"
+)
+
+const (
+	ConfigWhere  string = "where"
+	ConfigOrder         = "order"
+	ConfigSort          = "order"
+	ConfigTake          = "limit"
+	ConfigLimit         = "limit"
+	ConfigTop           = "limit"
+	ConfigSkip          = "skip"
+	ConfigSelect        = "select"
 )
 
 type DataContext struct {
@@ -52,16 +64,25 @@ func NewFromConfig(name string) (*DataContext, error) {
 func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	////_ = "breakpoint"
 	q := d.Connection.NewQuery().From(m.TableName())
-	if qe := parms.Get("where", nil); qe != nil {
-		q = q.Where(qe.([]*dbox.Filter)...)
+	if qe := parms.Get(ConfigSelect); qe != nil {
+		fields := qe.(string)
+		selectFields := strings.Split(fields, ",")
+		q = q.Select(selectFields...)
 	}
-	if qe := parms.Get("order", nil); qe != nil {
+	if qe := parms.Get(ConfigWhere, nil); qe != nil {
+		//q = q.Where(qe.(*dbox.Filter))
+		filters := qe.([]*dbox.Filter)
+		if len(filters) > 0 {
+			q = q.Where(dbox.And(filters...))
+		}
+	}
+	if qe := parms.Get(ConfigOrder, nil); qe != nil {
 		q = q.Order(qe.([]string)...)
 	}
-	if qe := parms.Get("skip", nil); qe != nil {
+	if qe := parms.Get(ConfigSkip, nil); qe != nil {
 		q = q.Skip(qe.(int))
 	}
-	if qe := parms.Get("limit", nil); qe != nil {
+	if qe := parms.Get(ConfigLimit, nil); qe != nil {
 		q = q.Take(qe.(int))
 	}
 	//fmt.Printf("Debug Q: %s\n", tk.JsonString(q))
@@ -69,26 +90,53 @@ func (d *DataContext) Find(m IModel, parms tk.M) (dbox.ICursor, error) {
 	//return c
 }
 
-func (d *DataContext) GetById(m IModel, id interface{}) error {
+func (d *DataContext) Get(m IModel, config tk.M) error {
 	var e error
-	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.(IModel).TableName())
+	if config.Has(ConfigWhere) {
+		q = q.Where(config.Get(ConfigWhere).(*dbox.Filter))
+	}
+	if config.Has(ConfigOrder) {
+		q = q.Order(config.Get(ConfigOrder).([]string)...)
+	}
+	q = q.Take(1)
 	//q := d.Connection.NewQuery().From(m.(IModel).TableName()).Where(dbox.Eq("_id", id))
 	c, e := q.Cursor(nil)
 	if e != nil {
-		return err.Error(packageName, modCtx, "GetById", "Cursor fail. "+e.Error())
+		return err.Error(packageName, modCtx, "Get", "Cursor fail. "+e.Error())
 	}
 	defer c.Close()
 	e = c.Fetch(m, 1, false)
 	if e != nil {
-		return err.Error(packageName, modCtx, "GetById", e.Error())
+		return err.Error(packageName, modCtx, "Get", e.Error())
 	}
 	return nil
+}
+
+func (d *DataContext) GetById(m IModel, id interface{}) error {
+	return d.Get(m, tk.M{}.Set("_id", id))
 }
 
 func (d *DataContext) Insert(m IModel) error {
 	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
 	e := q.Exec(tk.M{"data": m})
 	return e
+}
+
+func (d *DataContext) InsertOut(m IModel) (int64, error) {
+	q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m.TableName()).Insert()
+	id, e := q.ExecOut(tk.M{"data": m})
+	return id, e
+}
+
+func (d *DataContext) InsertBulk(m []IModel) (e error) {
+	if len(m) > 0 {
+		q := d.Connection.NewQuery().SetConfig("pooling", d.Pooling()).From(m[0].TableName()).Insert()
+		e = q.Exec(tk.M{"data": m})
+	} else {
+		e = err.Error(packageName, modCtx, "InsertBulk", "No Data")
+	}
+	return
 }
 
 func (d *DataContext) Save(m IModel) error {
@@ -126,7 +174,7 @@ func (d *DataContext) DeleteMany(m IModel, where *dbox.Filter) error {
 	if where != nil {
 		q.Where(where)
 	}
-	e = q.Exec(tk.M{"where": where})
+	e = q.Exec(nil)
 	return e
 }
 

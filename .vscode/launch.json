@@ -1,0 +1,32 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Gen",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceRoot}/cli",
+			"env": {},
+			"args": ["-out=gen","-source=./ormdata"]
+		},
+		{
+			"name": "GenTest",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${workspaceRoot}/cli/gen/test",
+			"env": {},
+			"args": ["-test.v"]
+		},
+		{
+			"name": "GenTemplate",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${workspaceRoot}/cli/tpl/test",
+			"env": {},
+			"args": ["-test.v"]
+		}
+	]
+}

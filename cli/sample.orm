@@ -1,0 +1,20 @@
+package office 
+
+struct Employee {
+/*C:Employee Commented remark - any commented remak started with C: will be copied over to generated code and eliminiate its C: part*/
+TableName:employeTables /*Tablename on orm will be employeTables ... if no tablename define default is employees (plural name of struct in lower case) */
+ID:string primary_key tag=bson:`_id:json`
+Enable:bool default=""
+LastLogin:time.Time
+Get(ID)          /*Will generate GetByID(id string)*Employee */
+Find(Title)       /*Will generate FindByTitle(title string)[]*Employee */
+Find(Enable) 
+}
+
+struct Department {
+/*C:Department this is a commented remark and should be copied over to code for documentation purpose*/
+ID:string:primary_key:bson`_id:json`_id
+Title:string
+Enable:bool:default_true
+OwnerID:string:reference_Employee /*Field EmployeeID, is a reference to Employee. ormgen should automatically created func (d *Department) Owner()*Employee */
+}
