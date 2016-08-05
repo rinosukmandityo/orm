@@ -189,7 +189,7 @@ func (sm *StructModel) Write(pkg *PackageModel, path string) error {
         if filter != nil {
             config.Set("where", filter)
         }
-        c, ecursor := DB().Find(new(Employee), config)
+        c, ecursor := DB().Find(new({0}), config)
         if ecursor != nil {
             return nil, ecursor
         }
