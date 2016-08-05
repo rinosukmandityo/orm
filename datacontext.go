@@ -110,7 +110,7 @@ func (d *DataContext) Get(m IModel, config tk.M) error {
 }
 
 func (d *DataContext) GetById(m IModel, id interface{}) error {
-	return d.Get(m, tk.M{}.Set("_id", id))
+	return d.Get(m, tk.M{}.Set(ConfigWhere, dbox.Eq("_id", id)))
 }
 
 func (d *DataContext) Insert(m IModel) error {
