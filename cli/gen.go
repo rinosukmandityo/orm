@@ -257,12 +257,12 @@ func (sm *StructModel) buildMethod(
 	if methodType == MethodFind {
 		tpl = `
             func {0}FindBy{1}({2},fields string,limit,skip int) dbox.ICursor{
-			return {0}Find({3},"","",0,0)
+			return {0}Find({3},orders,"",limit,skip)
 			}`
 	} else {
 		tpl = `
             func {0}GetBy{1}({2},orders string)(*{0},error){
-			    return {0}Get({3},"",0)
+			    return {0}Get({3},orders,0)
 			}
             `
 	}
